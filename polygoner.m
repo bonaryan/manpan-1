@@ -18,8 +18,10 @@ function [profiles] = polygoner(nrange, drange, slendrange, fy, rcoef, nbend, le
 % lext = 20;
 % tg = 10;
 
+% Initialise the cell array to host the profiles
 profiles = cell(length(nrange), length(drange), length(slendrange));
 
+% Loop through the values within the given ranges
 for i = 1:length(nrange); 
     for j = 1:length(drange);
         for k = 1:length(slendrange);
