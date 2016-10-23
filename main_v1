@@ -21,15 +21,22 @@ nbend = 6;
 % extension length
 lext = 40;
 
+% Thickness of the gusset plate
+tg = 20;
+
 % Calculated characteristics
 R = d/2;
 epsilon = sqrt(fy/235);
 t = ceil(epsilon^2 * d / 90);
 
 %% Polygon sector
-% sector angle
+% Angle corresponding to one edge of the polygon
 theta = 2*pi/n;
+
+% Angles of radii (measured from x-axis)
 phi=5*pi/6:-theta:pi/6;
+
+% xy coords of the polygon's corners
 x = R*cos(phi);
 y = R*sin(phi);
 
@@ -44,13 +51,13 @@ lc = rbend/cos(theta/2);
 xc  = (x(2:end-1) - lc*cos(phi(2:end-1)));
 yc  = (y(2:end-1) - lc*sin(phi(2:end-1)));
 
-% Bending angle
+% Bending arc angle
 theta_b = pi - theta;
 
-% Start-Stop angles
+% Angles of the edges' midlines (measured from x-axis)
 phi_mids = phi(1:end-1) - theta/2 ;
 
-% Arc points
+% xy coords of the arc's points
 for i = 1:n/3 -1;
     for j = 1:nbend+1;
         xarc(i, j) = xc(i) + rbend*cos(phi_mids(i)-(j-1)*(theta/nbend));
@@ -59,9 +66,6 @@ for i = 1:n/3 -1;
 end;
 
 %% Start-end extensions
-% Thickness of the gusset plate
-tg = 20;
-
 % Bending radius
 rs = rbend/5;
 
@@ -73,11 +77,11 @@ l2 = rs/sin(v2-phi_mids(1)+pi/2);
 x1 = x(1)+l1*cos(v1);
 y1 = y(1)+l1*sin(v1);
 
-% First bend centre
+% First bend centre coords
 xcs(1) = x1+l2*cos(v2);
 ycs(1) = y1+l2*sin(v2);
 
-% End bend
+% Last bend
 v1 = phi_mids(end)+pi/2;
 v2 = (v1+phi(end))/2;
 l1 = (t+tg)/(2*cos(v1-phi(end)-pi/2));
@@ -85,11 +89,11 @@ l2 = rs/sin(v2-phi(end));
 x1 = x(end)+l1*cos(v1);
 y1 = y(end)+l1*sin(v1);
 
-% End bend centre
+% Last bend centre coords
 xcs(2) = x1+l2*cos(v2);
 ycs(2) = y1+l2*sin(v2);
 
-% First and end bend arc points
+% First and last bend arc points coords
 for j = 1:nbend+1;
     xsarc(1, j) = xcs(1) + rs*cos(4*pi/3+(j-1)*((phi_mids(1)-pi/3)/nbend));
     ysarc(1, j) = ycs(1) + rs*sin(4*pi/3+(j-1)*((phi_mids(1)-pi/3)/nbend));
@@ -112,4 +116,6 @@ yarc = yarc';
 
 x_out = [xstart, xsarc(1, :), xarc(:)', xsarc(2, :), xend];
 y_out = [ystart, ysarc(1, :), yarc(:)', ysarc(2, :), yend];
+
+% Plot result
 plot(x_out, y_out)
