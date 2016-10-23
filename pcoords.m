@@ -1,33 +1,42 @@
-clear all
-close all
+function [x_out, y_out] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
+% Return x, y coords of points of a 1/3 of folded polygonal cross section.
+% input args: number of corners, CS diameter, slenderness, yield strength, 
+% bending arc radius r/t, no. of points along the bending arcs, end 
+% extensions length, gusset plate thickness.
+% output: [x, y]
+
 
 %% Input
-% Number of corners (entire polygon, only 3*m)
-n = 9;
+% % Number of corners (entire polygon, only 3*m)
+% n = 9;
+% 
+% % Polygon diameter
+% d = 500;
+% 
+% % Yield strength
+% fy = 355;
+% 
+% % Bending radius to thickness ratio
+% % (r/t = rcoef)
+% rcoef = 6;
+% 
+% % Number of points along the bend
+% nbend = 6;
+% 
+% % extension length
+% lext = 40;
+% 
+% % Thickness of the gusset plate
+% tg = 20;
+%
+% % Slenderness
+% slend
 
-% Polygon diameter
-d = 500;
-
-% Yield strength
-fy = 355;
-
-% Bending radius to thickness ratio
-% (r/t = rcoef)
-rcoef = 6;
-
-% Number of points along the bend
-nbend = 6;
-
-% extension length
-lext = 40;
-
-% Thickness of the gusset plate
-tg = 20;
 
 % Calculated characteristics
 R = d/2;
 epsilon = sqrt(fy/235);
-t = ceil(epsilon^2 * d / 90);
+t = ceil(epsilon^2 * d / slend);
 
 %% Polygon sector
 % Angle corresponding to one edge of the polygon
@@ -118,7 +127,7 @@ x_out = [xstart, xsarc(1, :), xarc(:)', xsarc(2, :), xend];
 y_out = [ystart, ysarc(1, :), yarc(:)', ysarc(2, :), yend];
 
 % Plot result
-plot(x_out, y_out);
+% plot(x_out, y_out);
 
 %% Call the selected output function
 % Output for CUFSM
