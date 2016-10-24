@@ -30,7 +30,7 @@ function [x_out, y_out] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
 % tg = 20;
 %
 % % Slenderness
-% slend
+% slend = 90;
 
 
 % Calculated characteristics
