@@ -10,19 +10,27 @@ Matlab function calculating the x, y coordinates of one sector of a semi-closed 
 
 Input:
 
-n		(integer)	Number of corners (entire polygon, only values 3*m)
-d		(double)	Polygon diameter
-slend	(double)	Slenderness
-fy		(double)	Yield strength
-rcoef	(double)	Bending radius to thickness ratio (r/t = rcoef)
-nbend	(integer)	Number of points along the bend
-lext	(double)	extension length
-tg		(double)	Thickness of the gusset plate
+n\t\t(integer)\tNumber of corners (entire polygon, only values 3*m)
+
+d\t\t(double)\tPolygon diameter
+
+slend\t(double)\tSlenderness
+
+fy\t\t(double)\tYield strength
+
+rcoef\t(double)\tBending radius to thickness ratio (r/t = rcoef)
+
+nbend\t(integer)\tNumber of points along the bend
+
+lext\t(double)\textension length
+
+tg\t\t(double)\tThickness of the gusset plate
+
 
 Output:
 
-x		(array)	x-coordinates
-y		(array)	y coordinates
+x\t\t(array)\tx-coordinates
+y\t\t(array)\ty coordinates
 
 # polygoner.m
 
@@ -32,18 +40,18 @@ profile_matrix = polygoner([n], [d], [slend], fy, rcoef, nbend, lext, tg)
 
 Input:
 
-n		(array)		Number of corners (e.g. [6, 9, 12])
-d		(array)		Polygon diameters. Initial:step:final (e.g. [300:50:500])
-slend	(array)	Slenderness range. Initial:step:final (e.g. [80:1:500])
-fy		(double)	Yield strength
-rcoef	(double)	Bending radius to thickness ratio (r/t = rcoef)
-nbend	(integer)	Number of points along the bend
-lext	(double)	extension length
-tg		(double)	Thickness of the gusset plate
+n\t\t(array)\t\tNumber of corners (e.g. [6, 9, 12])
+d\t\t(array)\t\tPolygon diameters. Initial:step:final (e.g. [300:50:500])
+slend\t(array)\tSlenderness range. Initial:step:final (e.g. [80:1:500])
+fy\t\t(double)\tYield strength
+rcoef\t(double)\tBending radius to thickness ratio (r/t = rcoef)
+nbend\t(integer)\tNumber of points along the bend
+lext\t(double)\textension length
+tg\t\t(double)\tThickness of the gusset plate
 
 Output:
 
-profile_matrix	(3d cell array)		Cell array containing all the x-y arrays.
+profile_matrix\t(3d cell array)\t\tCell array containing all the x-y arrays.
 
 # Polygoner_ABQS_out.m
 
