@@ -41,12 +41,19 @@ profile_matrix = polygoner([n], [d], [slend], fy, rcoef, nbend, lext, tg)
 Input:
 
 n		(array)		Number of corners (e.g. [6, 9, 12])
+
 d		(array)		Polygon diameters. Initial:step:final (e.g. [300:50:500])
-slend	(array)	Slenderness range. Initial:step:final (e.g. [80:1:500])
+
+slend	(array)		Slenderness range. Initial:step:final (e.g. [80:1:500])
+
 fy		(double)	Yield strength
+
 rcoef	(double)	Bending radius to thickness ratio (r/t = rcoef)
+
 nbend	(integer)	Number of points along the bend
+
 lext	(double)	extension length
+
 tg		(double)	Thickness of the gusset plate
 
 Output:
