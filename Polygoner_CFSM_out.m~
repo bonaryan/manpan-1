@@ -1,8 +1,4 @@
 % Script that creates and saves a matlab database in the right format for
 % CUFSM xrom a given set of x, y arrays
-<<<<<<< HEAD
-a= yeshallow
-=======
-a= yes hallow
->>>>>>> origin/master
+a= yes
 
