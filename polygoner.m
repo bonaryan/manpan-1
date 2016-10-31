@@ -7,7 +7,7 @@ function [profiles] = polygoner(nrange, drange, slendrange, fy, rcoef, nbend, le
 % output: [x, y]
 
 
-% % Example input
+% Example input
 % nrange = [6, 9, 12];
 % drange = [300:200:500];
 % slendrange = [70:5:120];
