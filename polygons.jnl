@@ -38,6 +38,12 @@ mdb.models['p111'].sketches['__profile__'].Line(point1=(122.6512, 82.1858), poin
 mdb.models['p111'].sketches['__profile__'].Line(point1=(124.3995, 82.0328), point2=(126.1328, 82.3074))
 mdb.models['p111'].sketches['__profile__'].Line(point1=(126.1328, 82.3074), point2=(127.7482, 82.9931))
 mdb.models['p111'].sketches['__profile__'].Line(point1=(127.7482, 82.9931), point2=(153.729, 97.9931))
+mdb.models['p111'].sketches['__profile__'].Line(point1=(153.729, 97.9931), point2=(153.729, 97.9931))
+mdb.models['p111'].sketches['__profile__'].Line(point1=(153.729, 97.9931), point2=(153.729, 97.9931))
+mdb.models['p111'].sketches['__profile__'].Line(point1=(153.729, 97.9931), point2=(153.729, 97.9931))
+mdb.models['p111'].sketches['__profile__'].Line(point1=(153.729, 97.9931), point2=(153.729, 97.9931))
+mdb.models['p111'].sketches['__profile__'].Line(point1=(153.729, 97.9931), point2=(153.729, 97.9931))
+mdb.models['p111'].sketches['__profile__'].Line(point1=(153.729, 97.9931), point2=(153.729, 97.9931))
 mdb.models['p111'].Part(dimensionality=THREE_D, name='sector', type=DEFORMABLE_BODY)
 mdb.models['p111'].parts['sector'].BaseShellExtrude(depth=1200.0, sketch=mdb.models['p111'].sketches['__profile__'])
 del mdb.models['p111'].sketches['__profile__']
