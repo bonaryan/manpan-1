@@ -1,10 +1,5 @@
-# Import profiles database
-import pickle
-profiles_file = open("profiles.pkl",'rb')
-profiles = pickle.load(profiles_file)
-profiles_file.close()
-
 # -*- coding: mbcs -*-
+import pickle
 from part import *
 from material import *
 from section import *
@@ -19,12 +14,27 @@ from sketch import *
 from visualization import *
 from connectorBehavior import *
 
+# Import profiles database and profile metadata
+profiles_file = open("profiles.pkl",'rb')
+profiles = pickle.load(profiles_file)
+profiles_file.close()
+
+profiles_file = open("meta.pkl",'rb')
+profiles_meta = pickle.load(profiles_file)
+profiles_file.close()
+
 ## 1st Phase: Buckling analysis
 
 for i in range(profiles.shape[0]):
 	for j in range(profiles.shape[1]):
 		for k in range(profiles.shape[2]):
+                 # Variables holding information of the current profile
 			current_model = str(i+1)+'-'+str(j+1)+'-'+str(k+1)
+			current_d = float(profiles_meta[i][j][k][0][0])
+			current_t = float(profiles_meta[i][j][k][1][0])
+			current_tg = float(profiles_meta[i][j][k][2][0])
+			current_fy = float(profiles_meta[i][j][k][3][0])
+
 			# Create model
 			mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
 
@@ -73,13 +83,13 @@ for i in range(profiles.shape[0]):
 			mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
 				integrationRule=SIMPSON, material='pure-elastic', name='sector', numIntPts=
 				5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
-				thickness=5.0, thicknessField='', thicknessModulus=None, thicknessType=
+				thickness=current_t, thicknessField='', thicknessModulus=None, thicknessType=
 				UNIFORM, useDensity=OFF)
 			# -for gusset
 			mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
 				integrationRule=SIMPSON, material='pure-elastic', name='gusset', numIntPts=
 				5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
-				thickness=10.0, thicknessField='', thicknessModulus=None, thicknessType=
+				thickness=current_tg, thicknessField='', thicknessModulus=None, thicknessType=
 				UNIFORM, useDensity=OFF)
 
 			# Assign sections

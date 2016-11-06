@@ -1,4 +1,4 @@
-function [x_out, y_out] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
+function [x_out, y_out, t] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
 % Return x, y coords of points of a 1/3 of folded polygonal cross section.
 % input args: number of corners, CS diameter, slenderness, yield strength, 
 % bending arc radius r/t, no. of points along the bending arcs, end 
