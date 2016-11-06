@@ -30,3 +30,6 @@ for i = 1:length(nrange);
         end
     end
 end
+
+% Save the profile database to the current directory as "profiles.mat"
+% save('profiles.mat', 'profiles');

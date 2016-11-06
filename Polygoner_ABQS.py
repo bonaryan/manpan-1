@@ -1,6 +1,6 @@
 # Import profiles database
 import pickle
-profiles_file = open("database.pkl",'rb')
+profiles_file = open("profiles.pkl",'rb')
 profiles = pickle.load(profiles_file)
 profiles_file.close()
 
