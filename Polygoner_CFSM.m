@@ -1,4 +1,4 @@
-function [curves, shapes] = Polygoner_CFSM_out(profiles)
+function [curves, shapes] = Polygoner_CFSM(profiles)
 % Function that is called for a giver 3D cell array with profile coordinate
 % data, executes CUFSM and returns the curves and shapes
 
