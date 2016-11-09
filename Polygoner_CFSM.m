@@ -16,7 +16,6 @@ G = E/(2*(1+v));
 
 % Define conditions
 springs = 0;
-constraints = 0;
 BC = 'S-S';
 
 % Define other parameters (to be explained)
@@ -31,24 +30,49 @@ for i = [1:matrix_size(1)];
     for j = [1:matrix_size(2)];
         for k= [1:matrix_size(3)];
             
-            % Current profile
-            c_prof = profiles{i, j, k}';
+            % Current profile xy
+            c_prof1 = profiles{i, j, k}';
             
             % Number of vertices on the current profile
-            l_prof = length(c_prof);
+            l_prof = length(c_prof1);
             
             % A column of ones
             col1 = ones(l_prof', 1);
             
+            % Construct the 2 extra parts by rotating the imported one
+            
+            R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
+            R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
+            for n = 1:l_prof;
+                c_prof2(n, :) = (R2*c_prof1(n, :)')';
+                c_prof3(n, :) = (R3*c_prof1(n, :)')';
+            end
+            
             % Construct the 'node' array
-            node = [(1:l_prof)', c_prof(:, 1), c_prof(:, 2), col1, col1, col1, col1, 100*col1];
+            node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
+                (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1
+                (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
+            
             
             % Construct the 'elem' array
-            elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+            elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+                (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+                (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
             
             % Construct the 'prop' array
             prop = [100, E, E, v, v, G ];
             
+            % Constructing general constraints, springs between the sectors
+            constraints = [l_prof+1 1 1.000 l_prof 1 0.000 0 0
+                l_prof+1 2 1.000 l_prof 2 0.000 0 0
+                l_prof+1 3 1.000 l_prof 3 0.000 0 0
+                2*l_prof+1 1 1.000 2*l_prof 1 0.000 0 0
+                2*l_prof+1 2 1.000 2*l_prof 2 0.000 0 0
+                2*l_prof+1 3 1.000 2*l_prof 3 0.000 0 0
+                1 1 1.000 3*l_prof 1 0.000 0 0
+                1 2 1.000 3*l_prof 2 0.000 0 0
+                1 3 1.000 3*l_prof 3 0.000 0 0];
+
             % Run the FSM strip analysis
             [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
             
