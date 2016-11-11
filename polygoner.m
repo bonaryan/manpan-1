@@ -9,8 +9,8 @@ function [profiles, profiles_meta] = polygoner(nrange, drange, slendrange, fy, r
 
 % Example input
 % nrange = [6, 9, 12];
-% drange = [300:200:500];
-% slendrange = [70:5:120];
+% drange = [300:200:900];
+% slendrange = [70:10:150];
 % 
 % fy = 355;
 % rcoef = 6;

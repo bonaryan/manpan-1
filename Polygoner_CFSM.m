@@ -1,4 +1,4 @@
-function [curves, shapes] = Polygoner_CFSM(profiles)
+function [curves, shapes] = Polygoner_CFSM(profiles, profiles_meta, l)
 % Function that is called for a giver 3D cell array with profile coordinate
 % data, executes CUFSM and returns the curves and shapes
 
@@ -21,8 +21,9 @@ BC = 'S-S';
 % Define other parameters (to be explained)
 GBTcon = struct('glob', 0, 'dist', 0, 'local', 0 , 'other', 0, 'ospace', [1], 'couple', [1], 'orth', [2]);
 n = 100;
-lengths = logspace(0, 3, n);
-m_all = num2cell(ones(1, n));
+lengths = logspace(0, l, n);
+lengths = [lengths, 50000];
+m_all = num2cell(ones(1, (n+1)));
 neigs = 10;
 
 % Loop executing CUFSM
@@ -32,6 +33,9 @@ for i = [1:matrix_size(1)];
             
             % Current profile xy
             c_prof1 = profiles{i, j, k}';
+            
+            %Current profile plate thickness
+            t = profiles_meta{i, j, k}(2);
             
             % Number of vertices on the current profile
             l_prof = length(c_prof1);
@@ -43,9 +47,9 @@ for i = [1:matrix_size(1)];
             
             R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
             R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
-            for n = 1:l_prof;
-                c_prof2(n, :) = (R2*c_prof1(n, :)')';
-                c_prof3(n, :) = (R3*c_prof1(n, :)')';
+            for a = 1:l_prof;
+                c_prof2(a, :) = (R2*c_prof1(a, :)')';
+                c_prof3(a, :) = (R3*c_prof1(a, :)')';
             end
             
             % Construct the 'node' array
@@ -55,9 +59,9 @@ for i = [1:matrix_size(1)];
             
             
             % Construct the 'elem' array
-            elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
-                (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
-                (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', 0.1*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+            elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+                (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+                (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
             
             % Construct the 'prop' array
             prop = [100, E, E, v, v, G ];
