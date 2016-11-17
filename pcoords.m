@@ -1,12 +1,11 @@
-function [x_out, y_out, t] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
+function [x_out, y_out, t, tg] = pcoords(n, d, slend, fy, rcoef, nbend, l_ratio, t_ratio)
 % Return x, y coords of points of a 1/3 of folded polygonal cross section.
 % input args: number of corners, CS diameter, slenderness, yield strength, 
-% bending arc radius r/t, no. of points along the bending arcs, end 
-% extensions length, gusset plate thickness.
-% output: [x, y]
+% bending arc radius r/t, no. of points along the bending arcs,lip length 
+% to diameter ratio, gusset plate thickness to sector thickness ratio.
+% output: [x, y], sector thickness, gussetplate thickness
 
-
-%% Input
+%% Input (recomended values)
 % % Number of corners (entire polygon, only 3*m)
 % n = 9;
 % 
@@ -23,11 +22,11 @@ function [x_out, y_out, t] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
 % % Number of points along the bend
 % nbend = 6;
 % 
-% % extension length
-% lext = 40;
+% % extension length to diameter ratio
+% l_ratio = 0.1;
 % 
-% % Thickness of the gusset plate
-% tg = 20;
+% % Thickness of the gusset plate to sector thickness ratio
+% t_ratio = 1.20;
 %
 % % Slenderness
 % slend = 90;
@@ -36,7 +35,9 @@ function [x_out, y_out, t] = pcoords(n, d, slend, fy, rcoef, nbend, lext, tg)
 % Calculated characteristics
 R = d/2;
 epsilon = sqrt(fy/235);
-t = ceil(epsilon^2 * d / slend);
+t = round(epsilon^2 * d / slend);
+tg = round(t_ratio*t);
+l_lip = l_ratio*d;
 
 %% Polygon sector
 % Angle corresponding to one edge of the polygon
@@ -110,16 +111,17 @@ for j = 1:nbend+1;
     ysarc(2, j) = ycs(2) + rs*sin(phi_mids(end)+pi+(j-1)*((phi(end)+pi/2-phi_mids(end))/nbend));
 end;
 
-%% First and last point
-% First point
-xstart = xsarc(1, 1) + lext*cos(phi(1));
-ystart = ysarc(1, 1) + lext*sin(phi(1));
+%% Points of the lips
+% First lip
+xstart = [xsarc(1, 1) + l_lip*cos(phi(1)), xsarc(1, 1) + l_lip*cos(phi(1))/2];
+ystart = [ysarc(1, 1) + l_lip*sin(phi(1)), ysarc(1, 1) + l_lip*sin(phi(1))/2];
+
 
 % Last point
-xend = xsarc(2, end) + lext*cos(phi(end));
-yend = ysarc(2, end) + lext*sin(phi(end));
+xend = [xsarc(2, end) + l_lip*cos(phi(end))/2, xsarc(2, end) + l_lip*cos(phi(end))];
+yend = [ysarc(2, end) + l_lip*sin(phi(end))/2, ysarc(2, end) + l_lip*sin(phi(end))];
 
-%% data collection
+%% Collect the x, y values in a sorted 2xn array
 xarc = xarc';
 yarc = yarc';
 
@@ -128,8 +130,3 @@ y_out = [ystart, ysarc(1, :), yarc(:)', ysarc(2, :), yend];
 
 % Plot result
 % plot(x_out, y_out);
-
-%% Call the selected output function
-% Output for CUFSM
-
-% Output for Abaqus

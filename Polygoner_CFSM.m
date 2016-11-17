@@ -67,15 +67,15 @@ for i = [1:matrix_size(1)];
             prop = [100, E, E, v, v, G ];
             
             % Constructing general constraints, springs between the sectors
-            constraints = [l_prof+1 1 1.000 l_prof 1 0.000 0 0
-                l_prof+1 2 1.000 l_prof 2 0.000 0 0
-                l_prof+1 3 1.000 l_prof 3 0.000 0 0
-                2*l_prof+1 1 1.000 2*l_prof 1 0.000 0 0
-                2*l_prof+1 2 1.000 2*l_prof 2 0.000 0 0
-                2*l_prof+1 3 1.000 2*l_prof 3 0.000 0 0
-                1 1 1.000 3*l_prof 1 0.000 0 0
-                1 2 1.000 3*l_prof 2 0.000 0 0
-                1 3 1.000 3*l_prof 3 0.000 0 0];
+            constraints = [l_prof+2 1 1.000 l_prof-1 1 0.000 0 0
+                l_prof+2 2 1.000 l_prof-1 2 0.000 0 0
+                l_prof+2 3 1.000 l_prof-1 3 0.000 0 0
+                2*l_prof+2 1 1.000 2*l_prof-1 1 0.000 0 0
+                2*l_prof+2 2 1.000 2*l_prof-1 2 0.000 0 0
+                2*l_prof+2 3 1.000 2*l_prof-1 3 0.000 0 0
+                2 1 1.000 3*l_prof-1 1 0.000 0 0
+                2 2 1.000 3*l_prof-1 2 0.000 0 0
+                2 3 1.000 3*l_prof-1 3 0.000 0 0];
 
             % Run the FSM strip analysis
             [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
