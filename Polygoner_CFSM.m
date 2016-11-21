@@ -29,7 +29,7 @@ neigs = 10;
 % Loop executing CUFSM
 for i = [1:matrix_size(1)];
     for j = [1:matrix_size(2)];
-        for k= [1:matrix_size(3)];
+        for k = [1:matrix_size(3)];
             
             % Current profile xy
             c_prof1 = profiles{i, j, k}';
@@ -44,19 +44,17 @@ for i = [1:matrix_size(1)];
             col1 = ones(l_prof', 1);
             
             % Construct the 2 extra parts by rotating the imported one
-            
             R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
             R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
             for a = 1:l_prof;
                 c_prof2(a, :) = (R2*c_prof1(a, :)')';
                 c_prof3(a, :) = (R3*c_prof1(a, :)')';
-            end
+            end;
             
             % Construct the 'node' array
             node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
-                (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1
+                (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1;
                 (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
-            
             
             % Construct the 'elem' array
             elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
