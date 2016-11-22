@@ -12,7 +12,7 @@ v = 0.3;
 G = E/(2*(1+v));
 
 % Define conditions
-springs = 0;
+% % springs = 0;
 BC = 'S-S';
 
 % Define other parameters (to be explained)
@@ -36,38 +36,55 @@ l_prof = length(c_prof1);
 % A column of ones
 col1 = ones(l_prof', 1);
 
-% Construct the 2 extra parts by rotating the imported one
-R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
-R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
-for a = 1:l_prof;
-    c_prof2(a, :) = (R2*c_prof1(a, :)')';
-    c_prof3(a, :) = (R3*c_prof1(a, :)')';
-end
+% % Construct the 2 extra parts by rotating the imported one
+% % R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
+% % R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
+% % for a = 1:l_prof;
+% %     c_prof2(a, :) = (R2*c_prof1(a, :)')';
+% %     c_prof3(a, :) = (R3*c_prof1(a, :)')';
+% % end
 
 % Construct the 'node' array
-node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
-    (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1
-    (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
+% % node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
+% %     (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1
+% %     (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
+
+node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1];
 
 
 % Construct the 'elem' array
-elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
-    (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
-    (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+% % elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+% %     (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+% %     (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+
+    elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+    
 
 % Construct the 'prop' array
 prop = [100, E, E, v, v, G ];
 
 % Constructing general constraints, springs between the sectors
-constraints = [l_prof+2 1 1.000 l_prof-1 1 0.000 0 0
-    l_prof+2 2 1.000 l_prof-1 2 0.000 0 0
-    l_prof+2 3 1.000 l_prof-1 3 0.000 0 0
-    2*l_prof+2 1 1.000 2*l_prof-1 1 0.000 0 0
-    2*l_prof+2 2 1.000 2*l_prof-1 2 0.000 0 0
-    2*l_prof+2 3 1.000 2*l_prof-1 3 0.000 0 0
-    2 1 1.000 3*l_prof-1 1 0.000 0 0
-    2 2 1.000 3*l_prof-1 2 0.000 0 0
-    2 3 1.000 3*l_prof-1 3 0.000 0 0];
+% % constraints = [l_prof+2 1 1.000 l_prof-1 1 0.000 0 0
+% %     l_prof+2 2 1.000 l_prof-1 2 0.000 0 0
+% %     l_prof+2 3 1.000 l_prof-1 3 0.000 0 0
+% %     2*l_prof+2 1 1.000 2*l_prof-1 1 0.000 0 0
+% %     2*l_prof+2 2 1.000 2*l_prof-1 2 0.000 0 0
+% %     2*l_prof+2 3 1.000 2*l_prof-1 3 0.000 0 0
+% %     2 1 1.000 3*l_prof-1 1 0.000 0 0
+% %     2 2 1.000 3*l_prof-1 2 0.000 0 0
+% %     2 3 1.000 3*l_prof-1 3 0.000 0 0];
+
+constraints = 0;
+ku = 5;    
+kw = 5;
+    kv = 5;
+%     Springs
+    springs = [2 1  ku 0 
+    2  2.000 kw 0 
+    2   3.00  kv 0
+    l_prof-1 1 ku 0
+    l_prof-1 2 kw 0
+    l_prof-1 3 kv 0];
 
 % Save the input variables from this run to a file. This file can be loaded
 % in CUFSM gui
