@@ -70,7 +70,7 @@ for i = 1:length(nrange);
                 3*l_prof, 1, 0.1];
             
             % Return cs properties using cutwp
-            [A,~,~,Iyy,Izz,Iyz] = cutwp_prop2(node, elem);
+            [A, ~, ~, Iyy, Izz, Iyz] = cutwp_prop2(node, elem);
             
             % Store the metadata in a cell array
             meta{i, j, k} = [drange(j); t; tg; fy; A; Iyy; Izz; Iyz];

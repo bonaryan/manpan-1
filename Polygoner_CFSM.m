@@ -1,4 +1,4 @@
-function [curves, shapes] = Polygoner_CFSM(profiles, profiles_meta, l)
+function [curves, shapes] = Polygoner_CFSM(profiles, profiles_meta, lambda)
 % Function that is called for a giver 3D cell array with profile coordinate
 % data, executes CUFSM and returns the curves and shapes
 
@@ -13,16 +13,19 @@ shapes = cell(matrix_size(1), matrix_size(2), matrix_size(3));
 E = 210000;
 v = 0.3;
 G = E/(2*(1+v));
+fy = 355;
 
 % Define conditions
 springs = 0;
 BC = 'S-S';
 
-% Define other parameters (to be explained)
+% Define cFSM parameters (constrained FSM for separating the different
+% buckling modes)
 GBTcon = struct('glob', 0, 'dist', 0, 'local', 0 , 'other', 0, 'ospace', [1], 'couple', [1], 'orth', [2]);
+
+% Number of sub-lengths for which the eigenvalues are calculated
 n = 100;
-lengths = logspace(0, l, n);
-lengths = [lengths, 50000];
+
 m_all = num2cell(ones(1, (n+1)));
 neigs = 10;
 
@@ -34,8 +37,16 @@ for i = [1:matrix_size(1)];
             % Current profile xy
             c_prof1 = profiles{i, j, k}';
             
-            %Current profile plate thickness
+            % Current profile plate thickness
             t = profiles_meta{i, j, k}(2);
+            
+            % Current profile area and moment of inertia
+            A = profiles_meta{i, j, k}(5);
+            I = min([profiles_meta{i, j, k}(6), profiles_meta{i, j, k}(7)]);
+            
+            % Current profile lengths
+            l = lambda*pi*sqrt(E*I/(A*fy));
+            lengths = logspace(0, log10(l), n);
             
             % Number of vertices on the current profile
             l_prof = length(c_prof1);
