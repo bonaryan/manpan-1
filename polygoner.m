@@ -73,7 +73,7 @@ for i = 1:length(nrange);
             [A,~,~,Iyy,Izz,Iyz] = cutwp_prop2(node, elem);
             
             % Store the metadata in a cell array
-            meta{i, j, k} = [drange(j); t; tg; fy; A; Ixx; Izz; Ixz];
+            meta{i, j, k} = [drange(j); t; tg; fy; A; Iyy; Izz; Iyz];
         end
     end
 end
