@@ -4,7 +4,7 @@
 % Input profile number
 i = 1;
 j = 1;
-k = 1;
+k = 10;
 
 % Define constants
 E = 210000;
@@ -94,7 +94,7 @@ save('loadfile.mat', 'prop', 'node', 'elem', 'lengths', 'springs', 'constraints'
 [curves, shapes] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
 
 % Clear unwanted variables
-clear c_prof1 c_prof2 c_prof3 col1 E G i j k l l_prof n R2 R3 t v a
+clear c_prof1 c_prof2 c_prof3 col1 E G i j k l l_prof n R2 R3 t v a ku kv kw
 
 % Clear the rest of variables
 clear prop node elem lengths springs constraints GBTcon BC m_all neigs

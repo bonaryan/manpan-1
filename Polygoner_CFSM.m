@@ -19,10 +19,6 @@ fy = 355;
 springs = 0;
 BC = 'S-S';
 
-% Define cFSM parameters (constrained FSM for separating the different
-% buckling modes)
-GBTcon = struct('glob', 0, 'dist', 0, 'local', 0 , 'other', 0, 'ospace', [1], 'couple', [1], 'orth', [2]);
-
 % Number of sub-lengths for which the eigenvalues are calculated
 n = 100;
 
@@ -55,36 +51,71 @@ for i = [1:matrix_size(1)];
             col1 = ones(l_prof', 1);
             
             % Construct the 2 extra parts by rotating the imported one
-            R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
-            R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
-            for a = 1:l_prof;
-                c_prof2(a, :) = (R2*c_prof1(a, :)')';
-                c_prof3(a, :) = (R3*c_prof1(a, :)')';
-            end;
+%             % Commented code: create rotation matrices for the case of 3
+%             % sectors
+%             R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
+%             R3 = [cos(2*pi/3), -sin(2*pi/3); sin(2*pi/3), cos(2*pi/3)];
+%             for a = 1:l_prof;
+%                 c_prof2(a, :) = (R2*c_prof1(a, :)')';
+%                 c_prof3(a, :) = (R3*c_prof1(a, :)')';
+%             end;
             
             % Construct the 'node' array
-            node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
-                (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1;
-                (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
+%             % Commented code: nodes for 3 sectors
+%             node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
+%                 (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1;
+%                 (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
+            
+            node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1];
             
             % Construct the 'elem' array
-            elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
-                (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
-                (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+%             % Commented code: elements for 3 sectors
+%             elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+%                 (1*l_prof:2*l_prof-2)', l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1);
+%                 (2*l_prof-1:3*l_prof-3)', 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
+
+            elem = [(1:l_prof-1)', (1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1), 100*ones(l_prof-1', 1)];
             
             % Construct the 'prop' array
             prop = [100, E, E, v, v, G ];
             
-            % Constructing general constraints, springs between the sectors
-            constraints = [l_prof+2 1 1.000 l_prof-1 1 0.000 0 0
-                l_prof+2 2 1.000 l_prof-1 2 0.000 0 0
-                l_prof+2 3 1.000 l_prof-1 3 0.000 0 0
-                2*l_prof+2 1 1.000 2*l_prof-1 1 0.000 0 0
-                2*l_prof+2 2 1.000 2*l_prof-1 2 0.000 0 0
-                2*l_prof+2 3 1.000 2*l_prof-1 3 0.000 0 0
-                2 1 1.000 3*l_prof-1 1 0.000 0 0
-                2 2 1.000 3*l_prof-1 2 0.000 0 0
-                2 3 1.000 3*l_prof-1 3 0.000 0 0];
+            % Define cFSM parameters (constrained FSM for separating the different
+            % buckling modes)
+            % Generate unit length base vectors and number of modes
+            [~ ,~ ,~ ,~ ,~ ,~ ,~ , ndm, nlm, ~] = base_properties(node,elem);
+            ngm = 4;
+            nom = 2*(length(node(:,1))-1);
+            GBTcon.glob = ones(1,ngm);
+            GBTcon.dist = ones(1,ndm);
+            GBTcon.local = ones(1,nlm);
+            GBTcon.other = ones(1,nom);
+
+% for no cFSM, uncomment the following line
+% GBTcon = struct('glob', 0, 'dist', 0, 'local', 0 , 'other', 0, 'ospace', [1], 'couple', [1], 'orth', [2]);
+            
+            % Constructing general constraints, springs
+%             % Commented code: constraints between the DOFs of 3 sectors
+%             constraints = [l_prof+2 1 1.000 l_prof-1 1 0.000 0 0
+%                 l_prof+2 2 1.000 l_prof-1 2 0.000 0 0
+%                 l_prof+2 3 1.000 l_prof-1 3 0.000 0 0
+%                 2*l_prof+2 1 1.000 2*l_prof-1 1 0.000 0 0
+%                 2*l_prof+2 2 1.000 2*l_prof-1 2 0.000 0 0
+%                 2*l_prof+2 3 1.000 2*l_prof-1 3 0.000 0 0
+%                 2 1 1.000 3*l_prof-1 1 0.000 0 0
+%                 2 2 1.000 3*l_prof-1 2 0.000 0 0
+%                 2 3 1.000 3*l_prof-1 3 0.000 0 0];
+            constraints = 0;
+
+            % Springs
+            ku = 5; % !!!Check which DOF is which!!!
+            kw = 5;
+            kv = 5;
+            springs = [2, 1,  ku, 0;
+                2, 2, kw, 0;
+                2, 3, kv, 0;
+                l_prof-1, 1, ku, 0;
+                l_prof-1, 2, kw, 0;
+                l_prof-1, 3, kv, 0];
 
             % Run the FSM strip analysis
             [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
