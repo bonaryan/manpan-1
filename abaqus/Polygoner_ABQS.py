@@ -31,12 +31,14 @@ profiles_file.close()
 for i in range(1):
 	for j in range(1):
 		for k in range(1):
+			for l in range(1):
 		    # Variables holding information of the current profile
-			current_model = str(i+1)+'-'+str(j+1)+'-'+str(k+1)
-			current_d = float(profiles_meta[i][j][k][0][0])
-			current_t = float(profiles_meta[i][j][k][1][0])
-			current_tg = float(profiles_meta[i][j][k][2][0])
-			current_fy = float(profiles_meta[i][j][k][3][0])
+			current_model = str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
+			current_d = float(profiles_meta[i][j][k][l][0][0])
+			current_t = float(profiles_meta[i][j][k][l][1][0])
+			current_tg = float(profiles_meta[i][j][k][l][2][0])
+			current_fy = float(profiles_meta[i][j][k][l][3][0])
+			current_l = float(profiles_meta[i][j][k][l][7][0])
 			
 			# Create model
 			mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
@@ -53,9 +55,26 @@ for i in range(1):
 			# -Extrude sector part
 			mdb.models[current_model].Part(dimensionality=THREE_D, name='sector', type=
 				DEFORMABLE_BODY)
-			mdb.models[current_model].parts['sector'].BaseShellExtrude(depth=4000.0, sketch=
+			mdb.models[current_model].parts['sector'].BaseShellExtrude(depth=current_l, sketch=
 				mdb.models[current_model].sketches['__profile__'])
 			del mdb.models[current_model].sketches['__profile__']
+			
+			# Make holes (change the x y z values)
+			mdb.models['1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=20.0
+				, distance1=15.0, distance2=100.0, edge1=
+				mdb.models['1-1-1'].parts['sector'].edges.getClosest(coordinates=((x1, y1, z1),))[0][0], edge2=
+				mdb.models['1-1-1'].parts['sector'].edges.getClosest(coordinates=((x2, y2, z2),))[0][0], plane=
+				mdb.models['1-1-1'].parts['sector'].faces.getClosest(coordinates=((x1, y1, z1),))[0][0], planeSide=SIDE1)
+			
+			# Create datum planes to be used for partitioning
+			mdb.models['1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=85.0, 
+				principalPlane=XYPLANE)
+			
+			# Partition the sector
+			mdb.models['1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
+				mdb.models['1-1-1'].parts['sector'].datums[5], faces=
+				mdb.models['1-1-1'].parts['sector'].faces.getSequenceFromMask(('[#ffff ]', 
+				), ))
 			
 			# -Profile sketch for gusset
 			mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
@@ -73,7 +92,7 @@ for i in range(1):
 			# -Extrude gusset part
 			mdb.models[current_model].Part(dimensionality=THREE_D, name='gusset', type=
 				DEFORMABLE_BODY)
-			mdb.models[current_model].parts['gusset'].BaseShellExtrude(depth=300.0, sketch=
+			mdb.models[current_model].parts['gusset'].BaseShellExtrude(depth=current_d, sketch=
 				mdb.models[current_model].sketches['__profile__'])
 			del mdb.models[current_model].sketches['__profile__']
 
@@ -253,4 +272,7 @@ for i in range(1):
 #			mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
 #			mdb.models[riks_model].keywordBlock.replace(88, 
 #			'\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=current_model,STEP=1\n1,4\n\n** STEP: Step-1\n**')
+
+# Delete initial model
+del mdb.models['Model-1']
 

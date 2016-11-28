@@ -1,8 +1,8 @@
-function [profiles, meta] = polygoner(nrange, drange, slendrange, fy, rcoef, nbend, l_ratio, t_ratio)
+function [profiles, meta] = polygoner(nrange, drange, slendrange, fy, rcoef, nbend, l_ratio, t_ratio, lambda)
 % Return a cell array with the points of all the profiles within a range of
 % values.
-% input args: numbers of corners, CS diameters, slenderness', yield strength, 
-% bending arc radius r/t, no. of points along the bending arcs, end 
+% input args: numbers of corners, CS diameters, slenderness', yield strength,
+% bending arc radius r/t, no. of points along the bending arcs, end
 % extensions length, gusset plate thickness.
 % profiles output  : [x; y], [diameter; plate thicness; gusset plate thickness; fy]
 % meta outpur      : d; t; tg; fy; A; Ixx; Izz; Ixz
@@ -11,21 +11,24 @@ function [profiles, meta] = polygoner(nrange, drange, slendrange, fy, rcoef, nbe
 % nrange = [6, 9, 12];
 % drange = [300:200:900];
 % slendrange = linspace(70, 150, 10);
-% 
+% lambda = [0.65, 1, 1.25];
+%
 % fy = 355;
 % rcoef = 6;
 % nbend = 4;
 % l_ratio = 0.1;
 % t_ratio = 1.2;
 
+E = 210000;
+
 % Initialise a cell array to host the profiles' xy values
 profiles = cell(length(nrange), length(drange), length(slendrange));
 
 % Initialise a cell array to host the profile metadata
-meta = cell(length(nrange), length(drange), length(slendrange));
+meta = cell(length(nrange), length(drange), length(slendrange), length(lambda));
 
 % Loop through the values within the given ranges
-for i = 1:length(nrange); 
+for i = 1:length(nrange);
     for j = 1:length(drange);
         for k = 1:length(slendrange);
             
@@ -70,10 +73,21 @@ for i = 1:length(nrange);
                 3*l_prof, 1, 0.1];
             
             % Return cs properties using cutwp
-            [A, ~, ~, Iyy, Izz, Iyz] = cutwp_prop2(node, elem);
+            [A, ~, ~, Iyy, Izz] = cutwp_prop2(node, elem);
             
-            % Store the metadata in a cell array
-            meta{i, j, k} = [drange(j); t; tg; fy; A; Iyy; Izz; Iyz];
+            % Current profile area and moment of inertia
+            I = min(Iyy, Izz);
+            
+            % Loop through the different member slendernesses. The 'meta'
+            % array has one more dimension (4D)
+            for l = 1:length(lambda);
+                
+                % Current profile length
+                len = lambda*pi*sqrt(E*I/(A*fy));
+                
+                % Store the metadata in a cell array
+                meta{i, j, k, l} = [drange(j); t; tg; fy; A; Iyy; Izz; len(l)];
+            end
         end
     end
 end

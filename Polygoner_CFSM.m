@@ -1,6 +1,12 @@
-function [curves, shapes] = Polygoner_CFSM(profiles, profiles_meta, lambda)
+function [curves, shapes] = Polygoner_CFSM(profiles, meta, l)
 % Function that is called for a giver 3D cell array with profile coordinate
 % data, executes CUFSM and returns the curves and shapes
+
+% The 4d cell array 'meta' is converted to ta 3D (neglect different lambda)
+% Select the highest slenderness. CUFSM analyzes for many sub-lentghs. No
+% need to rerun the analysis for different physical  lengths. Selecting the
+% longest (highest slenederness) will return the same signature curve.
+meta = meta(:, :, :, end);
 
 % Size of the output matrix
 matrix_size = size(profiles);
@@ -34,14 +40,13 @@ for i = [1:matrix_size(1)];
             c_prof1 = profiles{i, j, k}';
             
             % Current profile plate thickness
-            t = profiles_meta{i, j, k}(2);
+            t = meta{i, j, k}(2);
             
             % Current profile area and moment of inertia
-            A = profiles_meta{i, j, k}(5);
-            I = min([profiles_meta{i, j, k}(6), profiles_meta{i, j, k}(7)]);
-            
+            A = meta{i, j, k}(5);
+            I = min([meta{i, j, k}(6), meta{i, j, k}(7)]);
+
             % Current profile lengths
-            l = lambda*pi*sqrt(E*I/(A*fy));
             lengths = logspace(0, log10(l), n);
             
             % Number of vertices on the current profile
