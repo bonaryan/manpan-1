@@ -107,9 +107,9 @@ for i = [1:matrix_size(1)];
             constraints = 0;
 
             % Springs
-            ku = 5; % !!!Check which DOF is which!!!
-            kw = 5;
-            kv = 5;
+            ku = 5e4; % !!!Check which DOF is which!!!
+            kw = 5e4;
+            kv = 5e4;
             springs = [2, 1,  ku, 0;
                 2, 2, kw, 0;
                 2, 3, kv, 0;
@@ -118,8 +118,7 @@ for i = [1:matrix_size(1)];
                 l_prof-1, 3, kv, 0];
 
             % Run the FSM strip analysis
-            [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
-            
+%            [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
         end
     end
 end
