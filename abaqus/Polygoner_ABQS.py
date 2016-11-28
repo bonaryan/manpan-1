@@ -1,5 +1,6 @@
 # -*- coding: mbcs -*-
 import pickle
+import numpy as np
 from part import *
 from material import *
 from section import *
@@ -28,250 +29,278 @@ profiles_file.close()
 #for i in range(profiles.shape[0]):
 #	for j in range(profiles.shape[1]):
 #		for k in range(profiles.shape[2]):
+#			for l in range(profiles_meta.shape[3])
 for i in range(1):
 	for j in range(1):
 		for k in range(1):
 			for l in range(1):
-		    # Variables holding information of the current profile
-			current_model = str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
-			current_d = float(profiles_meta[i][j][k][l][0][0])
-			current_t = float(profiles_meta[i][j][k][l][1][0])
-			current_tg = float(profiles_meta[i][j][k][l][2][0])
-			current_fy = float(profiles_meta[i][j][k][l][3][0])
-			current_l = float(profiles_meta[i][j][k][l][7][0])
-			
-			# Create model
-			mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
-
-			# Create Parts
-			# -Profile sketch for sector
-			mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
-			
-			# -Sketch sector lines
-			for n in range(profiles[i][j][k].shape[1]-1):
-				mdb.models[current_model].sketches['__profile__'].Line(point1=(profiles[i][j][k][0][n], profiles[i][j][k][1][n]), 
-					point2=(profiles[i][j][k][0][n+1], profiles[i][j][k][1][n+1]))
-			
-			# -Extrude sector part
-			mdb.models[current_model].Part(dimensionality=THREE_D, name='sector', type=
-				DEFORMABLE_BODY)
-			mdb.models[current_model].parts['sector'].BaseShellExtrude(depth=current_l, sketch=
-				mdb.models[current_model].sketches['__profile__'])
-			del mdb.models[current_model].sketches['__profile__']
-			
-			# Make holes (change the x y z values)
-			mdb.models['1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=20.0
-				, distance1=15.0, distance2=100.0, edge1=
-				mdb.models['1-1-1'].parts['sector'].edges.getClosest(coordinates=((x1, y1, z1),))[0][0], edge2=
-				mdb.models['1-1-1'].parts['sector'].edges.getClosest(coordinates=((x2, y2, z2),))[0][0], plane=
-				mdb.models['1-1-1'].parts['sector'].faces.getClosest(coordinates=((x1, y1, z1),))[0][0], planeSide=SIDE1)
-			
-			# Create datum planes to be used for partitioning
-			mdb.models['1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=85.0, 
-				principalPlane=XYPLANE)
-			
-			# Partition the sector
-			mdb.models['1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
-				mdb.models['1-1-1'].parts['sector'].datums[5], faces=
-				mdb.models['1-1-1'].parts['sector'].faces.getSequenceFromMask(('[#ffff ]', 
-				), ))
-			
-			# -Profile sketch for gusset
-			mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
-			
-			# -Sketch gusset lines
-			mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(0.0, 
-				-180.0))
-			mdb.models[current_model].sketches['__profile__'].VerticalConstraint(addUndoState=
-				False, entity=mdb.models[current_model].sketches['__profile__'].geometry[2])
-			mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(
-				155.8845727, 90.0))
-			mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(
-				-155.8845727, 90.0))
-
-			# -Extrude gusset part
-			mdb.models[current_model].Part(dimensionality=THREE_D, name='gusset', type=
-				DEFORMABLE_BODY)
-			mdb.models[current_model].parts['gusset'].BaseShellExtrude(depth=current_d, sketch=
-				mdb.models[current_model].sketches['__profile__'])
-			del mdb.models[current_model].sketches['__profile__']
-
-			# Material
-			mdb.models[current_model].Material(name='pure-elastic')
-			mdb.models[current_model].materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
-
-			# Create sections
-			# -for sector
-			mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
-				integrationRule=SIMPSON, material='pure-elastic', name='sector', numIntPts=
-				5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
-				thickness=current_t, thicknessField='', thicknessModulus=None, thicknessType=
-				UNIFORM, useDensity=OFF)
-			# -for gusset
-			mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
-				integrationRule=SIMPSON, material='pure-elastic', name='gusset', numIntPts=
-				5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
-				thickness=current_tg, thicknessField='', thicknessModulus=None, thicknessType=
-				UNIFORM, useDensity=OFF)
-
-			# Assign sections
-			# -for sector
-			mdb.models[current_model].parts['sector'].Set(faces=
-				mdb.models[current_model].parts['sector'].faces.getSequenceFromMask((
-				'[#1ffffff ]', ), ), name='Set-1')
-			mdb.models[current_model].parts['sector'].SectionAssignment(offset=0.0, offsetField=''
-				, offsetType=MIDDLE_SURFACE, region=
-				mdb.models[current_model].parts['sector'].sets['Set-1'], sectionName='sector', 
-				thicknessAssignment=FROM_SECTION)
-
-			# -for gusset
-			mdb.models[current_model].parts['gusset'].Set(faces=
-				mdb.models[current_model].parts['gusset'].faces.getSequenceFromMask(('[#7 ]', ), )
-				, name='Set-1')
-			mdb.models[current_model].parts['gusset'].SectionAssignment(offset=0.0, offsetField=''
-				, offsetType=MIDDLE_SURFACE, region=
-				mdb.models[current_model].parts['gusset'].sets['Set-1'], sectionName='gusset', 
-				thicknessAssignment=FROM_SECTION)
-
-			# Create assembly
-			mdb.models[current_model].rootAssembly.DatumCsysByDefault(CARTESIAN)
-			# -Sectors (make dependent=ON)
-			mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='sector-1', part=
-				mdb.models[current_model].parts['sector'])
-			mdb.models[current_model].rootAssembly.DatumAxisByPrincipalAxis(principalAxis=ZAXIS)
-			mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
-				instanceList=('sector-1', ), number=2, point=(0.0, 0.0, 0.0), totalAngle=
-				120.0)
-			mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
-				instanceList=('sector-1-rad-2', ), number=2, point=(0.0, 0.0, 0.0), 
-				totalAngle=120.0)
-
-			# -Gusset plate (Translation to be as constraint)
-			mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-1', part=
-				mdb.models[current_model].parts['gusset'])
-			mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-2', part=
-				mdb.models[current_model].parts['gusset'])
-			mdb.models[current_model].rootAssembly.instances['gusset-2'].translate(vector=(
-				385.995645402491, 0.0, 0.0))
-			mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-3', part=
-				mdb.models[current_model].parts['gusset'])
-			mdb.models[current_model].rootAssembly.instances['gusset-3'].translate(vector=(
-				728.941705342491, 0.0, 0.0))
-			mdb.models[current_model].rootAssembly.DatumPointByCoordinate(coords=(0.0, 0.0, 
-				2000.0))
-			mdb.models[current_model].rootAssembly.CoincidentPoint(fixedPoint=
-				mdb.models[current_model].rootAssembly.datums[15], movablePoint=
-				mdb.models[current_model].rootAssembly.instances['gusset-2'].InterestingPoint(
-				mdb.models[current_model].rootAssembly.instances['gusset-2'].edges[1], MIDDLE))
-			mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 0.0))
-			mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 4000.0))
-			mdb.models[current_model].rootAssembly.CoincidentPoint(fixedPoint=
-				mdb.models[current_model].rootAssembly.referencePoints[18], movablePoint=
-				mdb.models[current_model].rootAssembly.instances['gusset-3'].vertices[1])
-
-			# Create buckling step
-			mdb.models[current_model].BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 
-				previous='Initial', vectors=18)
-
-			# Create face couplings for BCs
-			# -Face 1
-			mdb.models[current_model].rootAssembly.Set(name='m_Set-1', referencePoints=(
-				mdb.models[current_model].rootAssembly.referencePoints[17], ))
-			mdb.models[current_model].rootAssembly.Set(edges=
-				mdb.models[current_model].rootAssembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
-				mask=('[#49249244 #92492492 #924 ]', ), )+\
-				mdb.models[current_model].rootAssembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
-				mask=('[#49249244 #92492492 #924 ]', ), )+\
-				mdb.models[current_model].rootAssembly.instances['sector-1'].edges.getSequenceFromMask(
-				mask=('[#49249244 #92492492 #924 ]', ), ), name='s_Set-1')
-			mdb.models[current_model].Coupling(controlPoint=
-				mdb.models[current_model].rootAssembly.sets['m_Set-1'], couplingType=KINEMATIC, 
-				influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-1', 
-				surface=mdb.models[current_model].rootAssembly.sets['s_Set-1'], u1=ON, u2=ON, u3=
-				ON, ur1=ON, ur2=ON, ur3=ON)
+				# Variables holding information of the current profile
+				current_model = str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
+				current_d = float(profiles_meta[i][j][k][l][0][0])
+				current_t = float(profiles_meta[i][j][k][l][1][0])
+				current_tg = float(profiles_meta[i][j][k][l][2][0])
+				current_fy = float(profiles_meta[i][j][k][l][3][0])
+				current_l = float(profiles_meta[i][j][k][l][7][0])
+				current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profiles[i][j][k][1][0]-profiles[i][j][k][1][2])**2)
 				
-			# -Face 2
-			mdb.models[current_model].rootAssembly.Set(name='m_Set-3', referencePoints=(
-				mdb.models[current_model].rootAssembly.referencePoints[18], ))
-			mdb.models[current_model].rootAssembly.Set(edges=
-				mdb.models[current_model].rootAssembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
-				mask=('[#92492491 #24924924 #249 ]', ), )+\
-				mdb.models[current_model].rootAssembly.instances['sector-1'].edges.getSequenceFromMask(
-				mask=('[#92492491 #24924924 #249 ]', ), )+\
-				mdb.models[current_model].rootAssembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
-				mask=('[#92492491 #24924924 #249 ]', ), ), name='s_Set-3')
-			mdb.models[current_model].Coupling(controlPoint=
-				mdb.models[current_model].rootAssembly.sets['m_Set-3'], couplingType=KINEMATIC, 
-				influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-2', 
-				surface=mdb.models[current_model].rootAssembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
-				ON, ur1=ON, ur2=ON, ur3=ON)
-				
-			# Fasteners
-			# -Create datum points
-			mdb.models[current_model].rootAssembly.DatumPointByOffset(point=
-				mdb.models[current_model].rootAssembly.instances['sector-1'].InterestingPoint(
-				mdb.models[current_model].rootAssembly.instances['sector-1'].edges[2], MIDDLE), 
-				vector=(0.0, 0.0, 50.0))
-			# Boundary conditions
-			mdb.models[current_model].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
-				distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-1', 
-				region=mdb.models[current_model].rootAssembly.sets['m_Set-1'], u1=SET, u2=SET, u3=
-				UNSET, ur1=UNSET, ur2=UNSET, ur3=SET)
-			mdb.models[current_model].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
-				distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-2', 
-				region=mdb.models[current_model].rootAssembly.sets['m_Set-3'], u1=SET, u2=SET, u3=
-				SET, ur1=UNSET, ur2=UNSET, ur3=SET)
-				
-			# Apply load
-			mdb.models[current_model].ConcentratedForce(cf3=1000.0, createStepName='Step-1', 
-				distributionType=UNIFORM, field='', localCsys=None, name='Load-1', region=
-				mdb.models[current_model].rootAssembly.sets['m_Set-1'])
-
-			# Meshing
-			mdb.models[current_model].parts['gusset'].seedPart(deviationFactor=0.1, minSizeFactor=
-				0.1, size=25.0)
-			mdb.models[current_model].parts['sector'].seedPart(deviationFactor=0.1, minSizeFactor=
-				0.1, size=25.0)
-			mdb.models[current_model].parts['sector'].generateMesh()
-			mdb.models[current_model].parts['gusset'].generateMesh()
-			mdb.models[current_model].rootAssembly.regenerate()
-			
-#			# Modify keyword for nodefile
-#			mdb.models[current_model].keywordBlock.synchVersions(storeNodesAndElements=False)
-#			mdb.models[current_model].keywordBlock.replace(101, '\n*Output, field, variable=PRESELECT\n*NODEFILE\nU')
-			
-		# ## 2nd Phase: Convert model to riks analysis
+				# Create model
+				mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
+	
+				# Material
+				mdb.models[current_model].Material(name='pure-elastic')
+				mdb.models[current_model].materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
+	
+				# Create sections
+				# -for sector
+				mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+					integrationRule=SIMPSON, material='pure-elastic', name='sector', numIntPts=
+					5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
+					thickness=current_t, thicknessField='', thicknessModulus=None, thicknessType=
+					UNIFORM, useDensity=OFF)
+				# -for gusset
+				mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
+					integrationRule=SIMPSON, material='pure-elastic', name='gusset', numIntPts=
+					5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
+					thickness=current_tg, thicknessField='', thicknessModulus=None, thicknessType=
+					UNIFORM, useDensity=OFF)
+	
+				# Create Parts
+				# Loop through the different bolt spacings (temporary b to change)
+				b = [0.5, 1, 1.5]
+				for m in range(1):
+					# -Profile sketch for sector
+					mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
+					
+					# -Sketch sector lines
+					for n in range(profiles[i][j][k].shape[1]-1):
+						mdb.models[current_model].sketches['__profile__'].Line(point1=(profiles[i][j][k][0][n], profiles[i][j][k][1][n]), 
+							point2=(profiles[i][j][k][0][n+1], profiles[i][j][k][1][n+1]))
+					
+					# -Extrude sector part
+					l_tot = 2*current_l + 3*current_d
+					mdb.models[current_model].Part(dimensionality=THREE_D, name='sector', type=
+						DEFORMABLE_BODY)
+					mdb.models[current_model].parts['sector'].BaseShellExtrude(depth=l_tot, sketch=
+						mdb.models[current_model].sketches['__profile__'])
+					del mdb.models[current_model].sketches['__profile__']
+					
+					# Calculate bolt positions
+					# -Distances on the length
+					current_b =  b[m]
+					s = current_b*current_d
+					(n0, s0) = divmod(current_l, s)
+					s1 = (s0 + s)/2
+					distances = [current_d + s1] + list(s1 + current_d + (s * np.linspace(1, n0-1, n0-1)))
+					
+					# Washer diameter
+					d_washer = 30
+					
+					# -Distance on the width
+					w = current_llip/2
+					
+					# Make holes
+					for o in range(int(n0)):
+						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
+							, distance1=distances[o], distance2=w, edge1=
+							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][1], profiles[i][j][k][1][1], 0),))[0][0], edge2=
+							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 1),))[0][0], plane=
+							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 0),))[0][0], planeSide=SIDE1)
+						
+						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
+							, distance1=distances[o], distance2=w, edge1=
+							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-2], profiles[i][j][k][1][-2], 0),))[0][0], edge2=
+							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 1),))[0][0], plane=
+							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 0),))[0][0], planeSide=SIDE1)
+						
+						# Create datum planes to be used for partitioning
+						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=distances[o]-20, 
+							principalPlane=XYPLANE)
+						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=distances[o]+20, 
+							principalPlane=XYPLANE)
+						
+						# Partition the sector
+						#mdb.models['1-1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
+						#	mdb.models['1-1-1-1'].parts['sector'].datums[5], faces=
+						#	mdb.models['1-1-1-1'].parts['sector'].faces.getSequenceFromMask(('[#ffff ]', 
+						#	), ))
+					
+					# -Profile sketch for gusset
+					mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
+					
+					# -Sketch gusset lines
+					r_gusset = current_d/2 + current_llip
+					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(cos(pi/6)*r_gusset, 
+						sin(pi/6)*r_gusset))
+					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(cos(5*pi/6)*r_gusset, 
+						sin(5*pi/6)*r_gusset))
+					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(cos(-pi/2)*r_gusset, 
+						sin(-pi/2)*r_gusset))
 		
-			riks_model = 'RIKS-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)
-	
-			# copy model from buckling analysis
-			mdb.Model(name=riks_model, objectToCopy=mdb.models[current_model])
-	
-#			# Delete keyword nodefile
-#			mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
-#			mdb.models[riks_model].keywordBlock.replace(102, '\n')
-
-			# Change material model, plasticity added (more points needed in plasticity table)
-			mdb.models[riks_model].materials['pure-elastic'].Plastic(table=((355.0, 0.0), ))
-			mdb.models[riks_model].StaticRiksStep(maintainAttributes=True, name='Step-1', 
-			nlgeom=ON, previous='Initial')
-    
-			# Load supressed
-			mdb.models[riks_model].loads['Load-1'].suppress()
-
-			# Change boundary conditions(recheck/delete the first part)
-			mdb.models[riks_model].DisplacementBC(amplitude=UNSET, createStepName='Step-1'
-			, distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name=
-			'BC-3', region=mdb.models[riks_model].rootAssembly.sets['m_Set-1'], u1=
-			UNSET, u2=UNSET, u3=1.0, ur1=UNSET, ur2=UNSET, ur3=UNSET)
-			mdb.models[riks_model].boundaryConditions['BC-1'].setValuesInStep(stepName=
-			'Step-1', u3=1.0)
-			del mdb.models[riks_model].boundaryConditions['BC-3']
-   
-#			# Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
-#			mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
-#			mdb.models[riks_model].keywordBlock.replace(88, 
-#			'\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=current_model,STEP=1\n1,4\n\n** STEP: Step-1\n**')
+					# -Extrude gusset part
+					mdb.models[current_model].Part(dimensionality=THREE_D, name='gusset', type=
+						DEFORMABLE_BODY)
+					mdb.models[current_model].parts['gusset'].BaseShellExtrude(depth=current_d, sketch=
+						mdb.models[current_model].sketches['__profile__'])
+					del mdb.models[current_model].sketches['__profile__']
+		
+					# Assign sections
+					# -for sector
+					mdb.models[current_model].parts['sector'].Set(faces=
+						mdb.models[current_model].parts['sector'].faces.getSequenceFromMask((
+						'[#1ffffff ]', ), ), name='Set-1')
+					mdb.models[current_model].parts['sector'].SectionAssignment(offset=0.0, offsetField=''
+						, offsetType=MIDDLE_SURFACE, region=
+						mdb.models[current_model].parts['sector'].sets['Set-1'], sectionName='sector', 
+						thicknessAssignment=FROM_SECTION)
+		
+					# -for gusset
+					mdb.models[current_model].parts['gusset'].Set(faces=
+						mdb.models[current_model].parts['gusset'].faces.getSequenceFromMask(('[#7 ]', ), )
+						, name='Set-1')
+					mdb.models[current_model].parts['gusset'].SectionAssignment(offset=0.0, offsetField=''
+						, offsetType=MIDDLE_SURFACE, region=
+						mdb.models[current_model].parts['gusset'].sets['Set-1'], sectionName='gusset', 
+						thicknessAssignment=FROM_SECTION)
+		
+					# Create assembly
+					mdb.models[current_model].rootAssembly.DatumCsysByDefault(CARTESIAN)
+					# -Sectors
+					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='sector-1', part=
+						mdb.models[current_model].parts['sector'])
+					mdb.models[current_model].rootAssembly.DatumAxisByPrincipalAxis(principalAxis=ZAXIS)
+					mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
+						instanceList=('sector-1', ), number=2, point=(0.0, 0.0, 0.0), totalAngle=
+						120.0)
+					mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
+						instanceList=('sector-1-rad-2', ), number=2, point=(0.0, 0.0, 0.0), 
+						totalAngle=120.0)
+		
+					# -Gusset plate (Translation to be as constraint)
+					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-1', part=
+						mdb.models[current_model].parts['gusset'])
+					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-2', part=
+						mdb.models[current_model].parts['gusset'])
+					mdb.models[current_model].rootAssembly.instances['gusset-2'].translate(vector=(
+						385.995645402491, 0.0, 0.0))
+					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-3', part=
+						mdb.models[current_model].parts['gusset'])
+					mdb.models[current_model].rootAssembly.instances['gusset-3'].translate(vector=(
+						728.941705342491, 0.0, 0.0))
+					mdb.models[current_model].rootAssembly.DatumPointByCoordinate(coords=(0.0, 0.0, 
+						2000.0))
+					mdb.models[current_model].rootAssembly.CoincidentPoint(fixedPoint=
+						mdb.models[current_model].rootAssembly.datums[15], movablePoint=
+						mdb.models[current_model].rootAssembly.instances['gusset-2'].InterestingPoint(
+						mdb.models[current_model].rootAssembly.instances['gusset-2'].edges[1], MIDDLE))
+					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 0.0))
+					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 4000.0))
+					mdb.models[current_model].rootAssembly.CoincidentPoint(fixedPoint=
+						mdb.models[current_model].rootAssembly.referencePoints[18], movablePoint=
+						mdb.models[current_model].rootAssembly.instances['gusset-3'].vertices[1])
+		
+					# Create buckling step
+					mdb.models[current_model].BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 
+						previous='Initial', vectors=18)
+		
+					# Create face couplings for BCs
+					# -Face 1
+					mdb.models[current_model].rootAssembly.Set(name='m_Set-1', referencePoints=(
+						mdb.models[current_model].rootAssembly.referencePoints[17], ))
+					mdb.models[current_model].rootAssembly.Set(edges=
+						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
+						mask=('[#49249244 #92492492 #924 ]', ), )+\
+						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
+						mask=('[#49249244 #92492492 #924 ]', ), )+\
+						mdb.models[current_model].rootAssembly.instances['sector-1'].edges.getSequenceFromMask(
+						mask=('[#49249244 #92492492 #924 ]', ), ), name='s_Set-1')
+					mdb.models[current_model].Coupling(controlPoint=
+						mdb.models[current_model].rootAssembly.sets['m_Set-1'], couplingType=KINEMATIC, 
+						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-1', 
+						surface=mdb.models[current_model].rootAssembly.sets['s_Set-1'], u1=ON, u2=ON, u3=
+						ON, ur1=ON, ur2=ON, ur3=ON)
+						
+					# -Face 2
+					mdb.models[current_model].rootAssembly.Set(name='m_Set-3', referencePoints=(
+						mdb.models[current_model].rootAssembly.referencePoints[18], ))
+					mdb.models[current_model].rootAssembly.Set(edges=
+						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
+						mask=('[#92492491 #24924924 #249 ]', ), )+\
+						mdb.models[current_model].rootAssembly.instances['sector-1'].edges.getSequenceFromMask(
+						mask=('[#92492491 #24924924 #249 ]', ), )+\
+						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
+						mask=('[#92492491 #24924924 #249 ]', ), ), name='s_Set-3')
+					mdb.models[current_model].Coupling(controlPoint=
+						mdb.models[current_model].rootAssembly.sets['m_Set-3'], couplingType=KINEMATIC, 
+						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-2', 
+						surface=mdb.models[current_model].rootAssembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
+						ON, ur1=ON, ur2=ON, ur3=ON)
+						
+					# Fasteners
+					# -Create datum points
+					mdb.models[current_model].rootAssembly.DatumPointByOffset(point=
+						mdb.models[current_model].rootAssembly.instances['sector-1'].InterestingPoint(
+						mdb.models[current_model].rootAssembly.instances['sector-1'].edges[2], MIDDLE), 
+						vector=(0.0, 0.0, 50.0))
+					# Boundary conditions
+					mdb.models[current_model].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+						distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-1', 
+						region=mdb.models[current_model].rootAssembly.sets['m_Set-1'], u1=SET, u2=SET, u3=
+						UNSET, ur1=UNSET, ur2=UNSET, ur3=SET)
+					mdb.models[current_model].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+						distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-2', 
+						region=mdb.models[current_model].rootAssembly.sets['m_Set-3'], u1=SET, u2=SET, u3=
+						SET, ur1=UNSET, ur2=UNSET, ur3=SET)
+						
+					# Apply load
+					mdb.models[current_model].ConcentratedForce(cf3=1000.0, createStepName='Step-1', 
+						distributionType=UNIFORM, field='', localCsys=None, name='Load-1', region=
+						mdb.models[current_model].rootAssembly.sets['m_Set-1'])
+		
+					# Meshing
+					mdb.models[current_model].parts['gusset'].seedPart(deviationFactor=0.1, minSizeFactor=
+						0.1, size=25.0)
+					mdb.models[current_model].parts['sector'].seedPart(deviationFactor=0.1, minSizeFactor=
+						0.1, size=25.0)
+					mdb.models[current_model].parts['sector'].generateMesh()
+					mdb.models[current_model].parts['gusset'].generateMesh()
+					mdb.models[current_model].rootAssembly.regenerate()
+					
+#					# Modify keyword for nodefile
+#					mdb.models[current_model].keywordBlock.synchVersions(storeNodesAndElements=False)
+#					mdb.models[current_model].keywordBlock.replace(101, '\n*Output, field, variable=PRESELECT\n*NODEFILE\nU')
+					
+		# ##		 2nd Phase: Convert model to riks analysis
+				
+					riks_model = 'RIKS-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)
+			
+					# copy model from buckling analysis
+					mdb.Model(name=riks_model, objectToCopy=mdb.models[current_model])
+			
+#					# Delete keyword nodefile
+#					mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
+#					mdb.models[riks_model].keywordBlock.replace(102, '\n')
+		
+					# Change material model, plasticity added (more points needed in plasticity table)
+					mdb.models[riks_model].materials['pure-elastic'].Plastic(table=((355.0, 0.0), ))
+					mdb.models[riks_model].StaticRiksStep(maintainAttributes=True, name='Step-1', 
+					nlgeom=ON, previous='Initial')
+			
+					# Load supressed
+					mdb.models[riks_model].loads['Load-1'].suppress()
+		
+					# Change boundary conditions(recheck/delete the first part)
+					mdb.models[riks_model].DisplacementBC(amplitude=UNSET, createStepName='Step-1'
+					, distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name=
+					'BC-3', region=mdb.models[riks_model].rootAssembly.sets['m_Set-1'], u1=
+					UNSET, u2=UNSET, u3=1.0, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+					mdb.models[riks_model].boundaryConditions['BC-1'].setValuesInStep(stepName=
+					'Step-1', u3=1.0)
+					del mdb.models[riks_model].boundaryConditions['BC-3']
+		
+#					# Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
+#					mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
+#					mdb.models[riks_model].keywordBlock.replace(88, 
+#					'\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=current_model,STEP=1\n1,4\n\n** STEP: Step-1\n**')
 
 # Delete initial model
 del mdb.models['Model-1']

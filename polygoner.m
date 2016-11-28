@@ -16,7 +16,7 @@ function [profiles, meta] = polygoner(nrange, drange, slendrange, fy, rcoef, nbe
 % fy = 355;
 % rcoef = 6;
 % nbend = 4;
-% l_ratio = 0.1;
+% l_ratio = 0.14;
 % t_ratio = 1.2;
 
 E = 210000;
