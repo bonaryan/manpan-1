@@ -85,37 +85,45 @@ for i in range(1):
 					del mdb.models[current_model].sketches['__profile__']
 					
 					# Calculate bolt positions
+					
+					# -Distance on the width
+					bolts_w = current_llip/2
+					
 					# -Distances on the length
 					current_b =  b[m]
 					s = current_b*current_d
 					(n0, s0) = divmod(current_l, s)
 					s1 = (s0 + s)/2
-					distances = [current_d + s1] + list(s1 + current_d + (s * np.linspace(1, n0-1, n0-1)))
+					
+					bolts_z1 = np.concatenate([[bolts_w], bolts_w + ((current_d - current_llip)/5) * np.linspace(1, 4, 4), [current_d - bolts_w]])
+					bolts_z2 = np.concatenate([[current_d + s1], s1 + current_d + (s * np.linspace(1, n0-1, n0-1))])
+					bolts_z3 = bolts_z1 + (current_l + current_d)
+					bolts_z4 = bolts_z2 + (current_l + current_d)
+					bolts_z5 = bolts_z3 + (current_l + current_d)
+					
+					bolts_z = np.concatenate([bolts_z1, bolts_z2, bolts_z3, bolts_z4, bolts_z5])
 					
 					# Washer diameter
 					d_washer = 30
-					
-					# -Distance on the width
-					w = current_llip/2
-					
+										
 					# Make holes
-					for o in range(int(n0)):
+					for o in range(int(bolts_z.shape[0])):
 						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=distances[o], distance2=w, edge1=
+							, distance1=bolts_z[o], distance2=w, edge1=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][1], profiles[i][j][k][1][1], 0),))[0][0], edge2=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 1),))[0][0], plane=
 							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 0),))[0][0], planeSide=SIDE1)
 						
 						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=distances[o], distance2=w, edge1=
+							, distance1=bolts_z[o], distance2=w, edge1=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-2], profiles[i][j][k][1][-2], 0),))[0][0], edge2=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 1),))[0][0], plane=
 							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 0),))[0][0], planeSide=SIDE1)
 						
 						# Create datum planes to be used for partitioning
-						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=distances[o]-20, 
+						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]-20, 
 							principalPlane=XYPLANE)
-						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=distances[o]+20, 
+						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]+20, 
 							principalPlane=XYPLANE)
 						
 						# Partition the sector
@@ -128,13 +136,27 @@ for i in range(1):
 					mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
 					
 					# -Sketch gusset lines
-					r_gusset = current_d/2 + current_llip
-					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(cos(pi/6)*r_gusset, 
-						sin(pi/6)*r_gusset))
-					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(cos(5*pi/6)*r_gusset, 
-						sin(5*pi/6)*r_gusset))
-					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(cos(-pi/2)*r_gusset, 
-						sin(-pi/2)*r_gusset))
+					# First point of the first sector
+					x0 = profiles[i][j][k][0][0]
+					y0 = profiles[i][j][k][1][0]
+					
+					# Angle of the first gusset fin
+					phi = pi*5/6
+					
+					# Calculate the end point of the gusset's first fin as an orthogonal projection of the sector's first point on the line of the gusset plate
+					gp1 = np.array([(x0*cos(phi)+y0*sin(phi))*cos(phi), (x0*cos(phi)+y0*sin(phi))*sin(phi)])
+					
+					# Rotation matrix to multiply the previous point in order to get the points of the other 2 gusset fins
+					Rmat = np.array([[cos(-2*pi/3), -sin(-2*pi/3)], [sin(-2*pi/3), cos(-2*pi/3)]])
+					
+					# Calculate the end points of the other 2 gusset fins by multiplying with the 120 degrees rotation matrix
+					gp2 = gp1.dot(Rmat)
+					gp3 = gp2.dot(Rmat)
+					
+					# Draw lines for the sketch of the gusset plate between 0, 0 and the calculated points gp1, gp2, gp3
+					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(gp1[0], gp1[1]))
+					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(gp2[0], gp2[1]))
+					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(gp3[0], gp3[1]))
 		
 					# -Extrude gusset part
 					mdb.models[current_model].Part(dimensionality=THREE_D, name='gusset', type=
@@ -164,16 +186,14 @@ for i in range(1):
 		
 					# Create assembly
 					mdb.models[current_model].rootAssembly.DatumCsysByDefault(CARTESIAN)
+					
 					# -Sectors
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='sector-1', part=
 						mdb.models[current_model].parts['sector'])
 					mdb.models[current_model].rootAssembly.DatumAxisByPrincipalAxis(principalAxis=ZAXIS)
 					mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
-						instanceList=('sector-1', ), number=2, point=(0.0, 0.0, 0.0), totalAngle=
-						120.0)
-					mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
-						instanceList=('sector-1-rad-2', ), number=2, point=(0.0, 0.0, 0.0), 
-						totalAngle=120.0)
+						instanceList=('sector-1', ), number=3, point=(0.0, 0.0, 0.0), totalAngle=
+						240.0)
 		
 					# -Gusset plate (Translation to be as constraint)
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-1', part=
@@ -181,22 +201,17 @@ for i in range(1):
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-2', part=
 						mdb.models[current_model].parts['gusset'])
 					mdb.models[current_model].rootAssembly.instances['gusset-2'].translate(vector=(
-						385.995645402491, 0.0, 0.0))
+						0.0, 0.0, (current_l + current_d)))
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-3', part=
 						mdb.models[current_model].parts['gusset'])
 					mdb.models[current_model].rootAssembly.instances['gusset-3'].translate(vector=(
-						728.941705342491, 0.0, 0.0))
-					mdb.models[current_model].rootAssembly.DatumPointByCoordinate(coords=(0.0, 0.0, 
-						2000.0))
-					mdb.models[current_model].rootAssembly.CoincidentPoint(fixedPoint=
-						mdb.models[current_model].rootAssembly.datums[15], movablePoint=
-						mdb.models[current_model].rootAssembly.instances['gusset-2'].InterestingPoint(
-						mdb.models[current_model].rootAssembly.instances['gusset-2'].edges[1], MIDDLE))
+						0.0, 0.0, 2*(current_l + current_d)))
+					
+					
 					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 0.0))
-					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 4000.0))
-					mdb.models[current_model].rootAssembly.CoincidentPoint(fixedPoint=
-						mdb.models[current_model].rootAssembly.referencePoints[18], movablePoint=
-						mdb.models[current_model].rootAssembly.instances['gusset-3'].vertices[1])
+					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (current_l + 1.5*current_d)))
+					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (2*current_l + 3*current_d)))
+		
 		
 					# Create buckling step
 					mdb.models[current_model].BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 

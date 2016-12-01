@@ -1,4 +1,4 @@
-function [curves, shapes] = Polygoner_CFSM(profiles, meta, l)
+function [curves, shapes] = Polygoner_CFSM(profiles, meta)
 % Function that is called for a giver 3D cell array with profile coordinate
 % data, executes CUFSM and returns the curves and shapes
 
@@ -47,7 +47,7 @@ for i = [1:matrix_size(1)];
             I = min([meta{i, j, k}(6), meta{i, j, k}(7)]);
 
             % Current profile lengths
-            lengths = logspace(0, log10(l), n);
+            lengths = logspace(0, log10(meta{i, j, k}(8)), n);
             
             % Number of vertices on the current profile
             l_prof = length(c_prof1);
@@ -55,7 +55,7 @@ for i = [1:matrix_size(1)];
             % A column of ones
             col1 = ones(l_prof', 1);
             
-            % Construct the 2 extra parts by rotating the imported one
+%             % Construct the 2 extra parts by rotating the imported one
 %             % Commented code: create rotation matrices for the case of 3
 %             % sectors
 %             R2 = [cos(-2*pi/3), -sin(-2*pi/3); sin(-2*pi/3), cos(-2*pi/3)];
@@ -64,9 +64,9 @@ for i = [1:matrix_size(1)];
 %                 c_prof2(a, :) = (R2*c_prof1(a, :)')';
 %                 c_prof3(a, :) = (R3*c_prof1(a, :)')';
 %             end;
-            
+%             
             % Construct the 'node' array
-%             % Commented code: nodes for 3 sectors
+            % Commented code: nodes for 3 sectors
 %             node = [(1:l_prof)', c_prof1(:, 1), c_prof1(:, 2), col1, col1, col1, col1, 100*col1;
 %                 (1*l_prof+1:2*l_prof)', c_prof2(:, 1), c_prof2(:, 2), col1, col1, col1, col1, 100*col1;
 %                 (2*l_prof+1:3*l_prof)', c_prof3(:, 1), c_prof3(:, 2), col1, col1, col1, col1, 100*col1];
