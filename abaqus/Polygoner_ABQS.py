@@ -109,28 +109,32 @@ for i in range(1):
 					# Make holes
 					for o in range(int(bolts_z.shape[0])):
 						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=bolts_z[o], distance2=w, edge1=
+							, distance1=bolts_z[o], distance2=bolts_w, edge1=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][1], profiles[i][j][k][1][1], 0),))[0][0], edge2=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 1),))[0][0], plane=
 							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 0),))[0][0], planeSide=SIDE1)
 						
 						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=bolts_z[o], distance2=w, edge1=
+							, distance1=bolts_z[o], distance2=bolts_w, edge1=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-2], profiles[i][j][k][1][-2], 0),))[0][0], edge2=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 1),))[0][0], plane=
 							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 0),))[0][0], planeSide=SIDE1)
 						
-						# Create datum planes to be used for partitioning
-						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]-20, 
+						# Create datum planes to be used for partitioning the sector
+						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]-bolts_w, 
 							principalPlane=XYPLANE)
-						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]+20, 
+						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]+bolts_w, 
 							principalPlane=XYPLANE)
-						
-						# Partition the sector
-						#mdb.models['1-1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
-						#	mdb.models['1-1-1-1'].parts['sector'].datums[5], faces=
-						#	mdb.models['1-1-1-1'].parts['sector'].faces.getSequenceFromMask(('[#ffff ]', 
-						#	), ))
+					
+					# Partition the sector
+					# Number of datum planes
+					n_dat = int(len(mdb.models['1-1-1-1'].parts['sector'].datums))
+					
+					# cut all the faces using the datum planes
+					for o in range(n_dat-2):						
+						mdb.models['1-1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
+							mdb.models['1-1-1-1'].parts['sector'].datums.items()[o+1][1], faces=
+							mdb.models['1-1-1-1'].parts['sector'].faces[:])
 					
 					# -Profile sketch for gusset
 					mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
@@ -168,20 +172,19 @@ for i in range(1):
 					# Assign sections
 					# -for sector
 					mdb.models[current_model].parts['sector'].Set(faces=
-						mdb.models[current_model].parts['sector'].faces.getSequenceFromMask((
-						'[#1ffffff ]', ), ), name='Set-1')
+						mdb.models[current_model].parts['sector'].faces[:], name='AllSectorFaces')
 					mdb.models[current_model].parts['sector'].SectionAssignment(offset=0.0, offsetField=''
 						, offsetType=MIDDLE_SURFACE, region=
-						mdb.models[current_model].parts['sector'].sets['Set-1'], sectionName='sector', 
+						mdb.models[current_model].parts['sector'].sets['AllSectorFaces'], sectionName='sector', 
 						thicknessAssignment=FROM_SECTION)
 		
 					# -for gusset
 					mdb.models[current_model].parts['gusset'].Set(faces=
-						mdb.models[current_model].parts['gusset'].faces.getSequenceFromMask(('[#7 ]', ), )
-						, name='Set-1')
+						mdb.models[current_model].parts['gusset'].faces[:]
+						, name='AllGussetFaces')
 					mdb.models[current_model].parts['gusset'].SectionAssignment(offset=0.0, offsetField=''
 						, offsetType=MIDDLE_SURFACE, region=
-						mdb.models[current_model].parts['gusset'].sets['Set-1'], sectionName='gusset', 
+						mdb.models[current_model].parts['gusset'].sets['AllGussetFaces'], sectionName='gusset', 
 						thicknessAssignment=FROM_SECTION)
 		
 					# Create assembly
@@ -195,22 +198,28 @@ for i in range(1):
 						instanceList=('sector-1', ), number=3, point=(0.0, 0.0, 0.0), totalAngle=
 						240.0)
 		
-					# -Gusset plate (Translation to be as constraint)
+					# -Gusset plate
+					# --Create the instances
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-1', part=
 						mdb.models[current_model].parts['gusset'])
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-2', part=
 						mdb.models[current_model].parts['gusset'])
-					mdb.models[current_model].rootAssembly.instances['gusset-2'].translate(vector=(
-						0.0, 0.0, (current_l + current_d)))
 					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-3', part=
 						mdb.models[current_model].parts['gusset'])
+					
+					# --Translate them to the right position
+					mdb.models[current_model].rootAssembly.instances['gusset-2'].translate(vector=(
+						0.0, 0.0, (current_l + current_d)))
 					mdb.models[current_model].rootAssembly.instances['gusset-3'].translate(vector=(
 						0.0, 0.0, 2*(current_l + current_d)))
 					
-					
+					# Create reference points for BCs/loads.
+					# -RPs for the faces at the two ends of the columns
 					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 0.0))
-					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (current_l + 1.5*current_d)))
 					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (2*current_l + 3*current_d)))
+					
+					# - RP at the middle
+					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (current_l + 1.5*current_d)))
 		
 		
 					# Create buckling step
