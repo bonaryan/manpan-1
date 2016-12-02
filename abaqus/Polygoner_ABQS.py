@@ -1,4 +1,3 @@
-# -*- coding: mbcs -*-
 import pickle
 import numpy as np
 from part import *
@@ -43,28 +42,11 @@ for i in range(1):
 				current_l = float(profiles_meta[i][j][k][l][7][0])
 				current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profiles[i][j][k][1][0]-profiles[i][j][k][1][2])**2)
 				
-				# Create model
+				# Create model --------------------------------------------------------------------------------------------------------------
 				mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
-	
-				# Material
-				mdb.models[current_model].Material(name='pure-elastic')
-				mdb.models[current_model].materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
-	
-				# Create sections
-				# -for sector
-				mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
-					integrationRule=SIMPSON, material='pure-elastic', name='sector', numIntPts=
-					5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
-					thickness=current_t, thicknessField='', thicknessModulus=None, thicknessType=
-					UNIFORM, useDensity=OFF)
-				# -for gusset
-				mdb.models[current_model].HomogeneousShellSection(idealization=NO_IDEALIZATION, 
-					integrationRule=SIMPSON, material='pure-elastic', name='gusset', numIntPts=
-					5, poissonDefinition=DEFAULT, preIntegrate=OFF, temperature=GRADIENT, 
-					thickness=current_tg, thicknessField='', thicknessModulus=None, thicknessType=
-					UNIFORM, useDensity=OFF)
-	
-				# Create Parts
+				c_model = mdb.models[current_model]
+				
+				# Create Parts --------------------------------------------------------------------------------------------------------------
 				
 				# Sector
 				
@@ -72,20 +54,26 @@ for i in range(1):
 				b = [0.5, 1, 1.5]
 				for m in range(1):
 					# -Profile sketch for sector
-					mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
+					sector_sketch = c_model.ConstrainedSketch(name='sector', sheetSize=1200.0)
 					
 					# -Sketch sector lines
 					for n in range(profiles[i][j][k].shape[1]-1):
-						mdb.models[current_model].sketches['__profile__'].Line(point1=(profiles[i][j][k][0][n], profiles[i][j][k][1][n]), 
-							point2=(profiles[i][j][k][0][n+1], profiles[i][j][k][1][n+1]))
+						sector_sketch.Line(
+							point1=(profiles[i][j][k][0][n], profiles[i][j][k][1][n]), 
+							point2=(profiles[i][j][k][0][n+1], profiles[i][j][k][1][n+1])
+							)
 					
 					# -Extrude sector part
 					l_tot = 2*current_l + 3*current_d
-					mdb.models[current_model].Part(dimensionality=THREE_D, name='sector', type=
-						DEFORMABLE_BODY)
-					mdb.models[current_model].parts['sector'].BaseShellExtrude(depth=l_tot, sketch=
-						mdb.models[current_model].sketches['__profile__'])
-					del mdb.models[current_model].sketches['__profile__']
+					sector_part = c_model.Part(
+						dimensionality=THREE_D,
+						name='sector',
+						type=DEFORMABLE_BODY
+						)
+					sector_part.BaseShellExtrude(
+						depth=l_tot,
+						sketch=sector_sketch
+						)
 					
 					# Calculate bolt positions
 					
@@ -111,41 +99,55 @@ for i in range(1):
 										
 					# Make holes
 					for o in range(int(bolts_z.shape[0])):
-#					for o in range(5):
-						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=bolts_z[o], distance2=bolts_w, edge1=
-							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][1], profiles[i][j][k][1][1], 0),))[0][0], edge2=
-							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 1),))[0][0], plane=
-							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 0),))[0][0], planeSide=SIDE1)
+						sector_part.HoleBlindFromEdges(
+							depth=1.0,
+							diameter=d_washer,
+							distance1=bolts_z[o],
+							distance2=bolts_w,
+							edge1=sector_part.edges.getClosest(coordinates=((profiles[i][j][k][0][1], profiles[i][j][k][1][1], 0),))[0][0],
+							edge2=sector_part.edges.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 1),))[0][0],
+							plane=sector_part.faces.getClosest(coordinates=((profiles[i][j][k][0][0], profiles[i][j][k][1][0], 0),))[0][0],
+							planeSide=SIDE1
+							)
 						
-						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=bolts_z[o], distance2=bolts_w, edge1=
-							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-2], profiles[i][j][k][1][-2], 0),))[0][0], edge2=
-							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 1),))[0][0], plane=
-							mdb.models['1-1-1-1'].parts['sector'].faces.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 0),))[0][0], planeSide=SIDE1)
+						sector_part.HoleBlindFromEdges(
+							depth=1.0,
+							diameter=d_washer,
+							distance1=bolts_z[o],
+							distance2=bolts_w,
+							edge1=sector_part.edges.getClosest(coordinates=((profiles[i][j][k][0][-2], profiles[i][j][k][1][-2], 0),))[0][0],
+							edge2=sector_part.edges.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 1),))[0][0],
+							plane=sector_part.faces.getClosest(coordinates=((profiles[i][j][k][0][-1], profiles[i][j][k][1][-1], 0),))[0][0],
+							planeSide=SIDE1
+							)
 						
 						# Create datum planes to be used for partitioning the sector
-						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]-bolts_w, 
-							principalPlane=XYPLANE)
-						mdb.models['1-1-1-1'].parts['sector'].DatumPlaneByPrincipalPlane(offset=bolts_z[o]+bolts_w, 
-							principalPlane=XYPLANE)
+						sector_part.DatumPlaneByPrincipalPlane(
+							offset=bolts_z[o]-bolts_w, 
+							principalPlane=XYPLANE
+							)
+						sector_part.DatumPlaneByPrincipalPlane(
+							offset=bolts_z[o]+bolts_w, 
+							principalPlane=XYPLANE
+							)
 					
 					# Partition the sector
 					
 					# -Number of datum planes
-#					n_dat = int(len(mdb.models['1-1-1-1'].parts['sector'].datums))
+					n_dat = int(len(sector_part.datums))
 					
 					# cut all the faces using the datum planes
 #					for o in range((n_dat-2)/3):
 					for o in range(1):						
-						mdb.models['1-1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
-							mdb.models['1-1-1-1'].parts['sector'].datums.items()[o+1][1], faces=
-							mdb.models['1-1-1-1'].parts['sector'].faces[:])
+						sector_part.PartitionFaceByDatumPlane(
+							datumPlane=sector_part.datums.items()[o+1][1],
+							faces=sector_part.faces[:]
+							)
 					
 					# Gusset
 					
 					# -Profile sketch for gusset
-					mdb.models[current_model].ConstrainedSketch(name='__profile__', sheetSize=1200.0)
+					gusset_sketch=c_model.ConstrainedSketch(name='__profile__', sheetSize=1200.0)
 					
 					# -Sketch gusset lines
 					# First point of the first sector
@@ -166,246 +168,326 @@ for i in range(1):
 					gp3 = gp2.dot(Rmat)
 					
 					# Draw lines for the sketch of the gusset plate between 0, 0 and the calculated points gp1, gp2, gp3
-					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(gp1[0], gp1[1]))
-					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(gp2[0], gp2[1]))
-					mdb.models[current_model].sketches['__profile__'].Line(point1=(0.0, 0.0), point2=(gp3[0], gp3[1]))
-		
+					gusset_sketch.Line(
+						point1=(0.0, 0.0),
+						point2=(gp1[0], gp1[1])
+						)
+					gusset_sketch.Line(
+						point1=(0.0, 0.0), 
+						point2=(gp2[0], gp2[1])
+						)
+					gusset_sketch.Line(
+						point1=(0.0, 0.0), 
+						point2=(gp3[0], gp3[1])
+						)
+				
 					# -Extrude gusset part
-					mdb.models[current_model].Part(dimensionality=THREE_D, name='gusset', type=
-						DEFORMABLE_BODY)
-					mdb.models[current_model].parts['gusset'].BaseShellExtrude(depth=current_d, sketch=
-						mdb.models[current_model].sketches['__profile__'])
-					del mdb.models[current_model].sketches['__profile__']
+					gusset_part=c_model.Part(
+						dimensionality=THREE_D,
+						name='gusset',
+						type=DEFORMABLE_BODY
+						)
+					gusset_part.BaseShellExtrude(
+						depth=current_d,
+						sketch=gusset_sketch
+						)
 					
 					# -Holes
 					for o in range(int(bolts_z1.shape[0])):
-						mdb.models['1-1-1-1'].parts['gusset'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=bolts_z1[o], distance2=bolts_w, edge1=
-							mdb.models['1-1-1-1'].parts['gusset'].edges.getClosest(coordinates=((gp1[0]/2, gp1[1]/2, 0),))[0][0], edge2=
-							mdb.models['1-1-1-1'].parts['gusset'].edges.getClosest(coordinates=((gp1[0], gp1[1], 1),))[0][0], plane=
-							mdb.models['1-1-1-1'].parts['gusset'].faces.getClosest(coordinates=((gp1[0], gp1[1], 0),))[0][0], planeSide=SIDE1)
-						
-						mdb.models['1-1-1-1'].parts['gusset'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
-							, distance1=bolts_z1[o], distance2=bolts_w, edge1=
-							mdb.models['1-1-1-1'].parts['gusset'].edges.getClosest(coordinates=((gp2[0]/2, gp2[1]/2, 0),))[0][0], edge2=
-							mdb.models['1-1-1-1'].parts['gusset'].edges.getClosest(coordinates=((gp2[0], gp2[1], 1),))[0][0], plane=
-							mdb.models['1-1-1-1'].parts['gusset'].faces.getClosest(coordinates=((gp2[0], gp2[1], 0),))[0][0], planeSide=SIDE1)
-						
-						mdb.models['1-1-1-1'].parts['gusset'].HoleBlindFromEdges(
+						gusset_part.HoleBlindFromEdges(
 							depth=1.0,
 							diameter=d_washer,
 							distance1=bolts_z1[o],
 							distance2=bolts_w,
-							edge1=mdb.models['1-1-1-1'].parts['gusset'].edges.getClosest(coordinates=((gp3[0]/2, gp3[1]/2, 0),))[0][0],
-							edge2=mdb.models['1-1-1-1'].parts['gusset'].edges.getClosest(coordinates=((gp3[0], gp3[1], 1),))[0][0],
-							plane=mdb.models['1-1-1-1'].parts['gusset'].faces.getClosest(coordinates=((gp3[0], gp3[1], 0),))[0][0],
+							edge1=gusset_part.edges.getClosest(coordinates=((gp1[0]/2, gp1[1]/2, 0),))[0][0],
+							edge2=gusset_part.edges.getClosest(coordinates=((gp1[0], gp1[1], 1),))[0][0], 
+							plane=gusset_part.faces.getClosest(coordinates=((gp1[0], gp1[1], 0),))[0][0], 
+							planeSide=SIDE1
+							)
+						
+						gusset_part.HoleBlindFromEdges(
+							depth=1.0,
+							diameter=d_washer,
+							distance1=bolts_z1[o],
+							distance2=bolts_w,
+							edge1=gusset_part.edges.getClosest(coordinates=((gp2[0]/2, gp2[1]/2, 0),))[0][0],
+							edge2=gusset_part.edges.getClosest(coordinates=((gp2[0], gp2[1], 1),))[0][0],
+							plane=gusset_part.faces.getClosest(coordinates=((gp2[0], gp2[1], 0),))[0][0],
+							planeSide=SIDE1
+							)
+						
+						gusset_part.HoleBlindFromEdges(
+							depth=1.0,
+							diameter=d_washer,
+							distance1=bolts_z1[o],
+							distance2=bolts_w,
+							edge1=gusset_part.edges.getClosest(coordinates=((gp3[0]/2, gp3[1]/2, 0),))[0][0],
+							edge2=gusset_part.edges.getClosest(coordinates=((gp3[0], gp3[1], 1),))[0][0],
+							plane=gusset_part.faces.getClosest(coordinates=((gp3[0], gp3[1], 0),))[0][0],
 							planeSide=SIDE1
 							)
 					
 					# Partition gusset
 					
-					mdb.models['1-1-1-1'].parts['gusset'].DatumPointByCoordinate((gp1[0]-current_llip*cos(5*pi/6), gp1[1]-current_llip*sin(5*pi/6), 0),)
-					mdb.models['1-1-1-1'].parts['gusset'].DatumPointByCoordinate((gp1[0]-current_llip*cos(5*pi/6), gp1[1]-current_llip*sin(5*pi/6), current_d),)
+					gusset_part.DatumPointByCoordinate((gp1[0]-current_llip*cos(5*pi/6), gp1[1]-current_llip*sin(5*pi/6), 0),)
+					gusset_part.DatumPointByCoordinate((gp1[0]-current_llip*cos(5*pi/6), gp1[1]-current_llip*sin(5*pi/6), current_d),)
 					
-					mdb.models['1-1-1-1'].parts['gusset'].PartitionFaceByShortestPath(
-						faces=mdb.models['1-1-1-1'].parts['gusset'].faces.getClosest(coordinates=((gp1[0], gp1[1], 0),))[0][0],
-						point1=mdb.models['1-1-1-1'].parts['gusset'].datum.items()[0][1],
-						point2=mdb.models['1-1-1-1'].parts['gusset'].datum.items()[1][1],
+					gusset_part.PartitionFaceByShortestPath(
+						faces=gusset_part.faces.getClosest(coordinates=((gp1[0], gp1[1], 0),))[0][0],
+						point1=gusset_part.datum.items()[0][1],
+						point2=gusset_part.datum.items()[1][1],
 						)
 					
-					mdb.models['1-1-1-1'].parts['gusset'].DatumPointByCoordinate((gp2[0]-current_llip*cos(-pi/2), gp2[1]-current_llip*sin(-pi/2), 0),)
-					mdb.models['1-1-1-1'].parts['gusset'].DatumPointByCoordinate((gp2[0]-current_llip*cos(-pi/2), gp2[1]-current_llip*sin(-pi/2), current_d),)
+					gusset_part.DatumPointByCoordinate((gp2[0]-current_llip*cos(-pi/2), gp2[1]-current_llip*sin(-pi/2), 0),)
+					gusset_part.DatumPointByCoordinate((gp2[0]-current_llip*cos(-pi/2), gp2[1]-current_llip*sin(-pi/2), current_d),)
 					
-					mdb.models['1-1-1-1'].parts['gusset'].PartitionFaceByShortestPath(
-						faces=mdb.models['1-1-1-1'].parts['gusset'].faces.getClosest(coordinates=((gp2[0], gp2[1], 0),))[0][0],
-						point1=mdb.models['1-1-1-1'].parts['gusset'].datum.items()[2][1],
-						point2=mdb.models['1-1-1-1'].parts['gusset'].datum.items()[3][1],
+					gusset_part.PartitionFaceByShortestPath(
+						faces=gusset_part.faces.getClosest(coordinates=((gp2[0], gp2[1], 0),))[0][0],
+						point1=gusset_part.datum.items()[2][1],
+						point2=gusset_part.datum.items()[3][1],
 						)
 					
-					mdb.models['1-1-1-1'].parts['gusset'].DatumPointByCoordinate((gp3[0]-current_llip*cos(pi/6), gp3[1]-current_llip*sin(pi/6), 0),)
-					mdb.models['1-1-1-1'].parts['gusset'].DatumPointByCoordinate((gp3[0]-current_llip*cos(pi/6), gp3[1]-current_llip*sin(pi/6), current_d),)
+					gusset_part.DatumPointByCoordinate((gp3[0]-current_llip*cos(pi/6), gp3[1]-current_llip*sin(pi/6), 0),)
+					gusset_part.DatumPointByCoordinate((gp3[0]-current_llip*cos(pi/6), gp3[1]-current_llip*sin(pi/6), current_d),)
 					
-					mdb.models['1-1-1-1'].parts['gusset'].PartitionFaceByShortestPath(
-						faces=mdb.models['1-1-1-1'].parts['gusset'].faces.getClosest(coordinates=((gp3[0], gp3[1], 0),))[0][0],
-						point1=mdb.models['1-1-1-1'].parts['gusset'].datum.items()[4][1],
-						point2=mdb.models['1-1-1-1'].parts['gusset'].datum.items()[5][1],
+					gusset_part.PartitionFaceByShortestPath(
+						faces=gusset_part.faces.getClosest(coordinates=((gp3[0], gp3[1], 0),))[0][0],
+						point1=gusset_part.datum.items()[4][1],
+						point2=gusset_part.datum.items()[5][1],
 						)
 					
-					# Assign sections
+					# Material --------------------------------------------------------------------------------------------------------------------
+					c_model.Material(name='pure-elastic')
+					c_model.materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
+		
+					# Create sections -------------------------------------------------------------------------------------------------------------
+					# -for sector
+					c_model.HomogeneousShellSection(
+						idealization=NO_IDEALIZATION, 
+						integrationRule=SIMPSON,
+						material='pure-elastic',
+						name='sector',
+						numIntPts=5,
+						poissonDefinition=DEFAULT,
+						preIntegrate=OFF,
+						temperature=GRADIENT, 
+						thickness=current_t,
+						thicknessField='',
+						thicknessModulus=None,
+						thicknessType=UNIFORM,
+						useDensity=OFF
+						)
+						
+					# -for gusset
+					c_model.HomogeneousShellSection(
+						idealization=NO_IDEALIZATION, 
+						integrationRule=SIMPSON,
+						material='pure-elastic',
+						name='gusset',
+						numIntPts=5,
+						poissonDefinition=DEFAULT,
+						preIntegrate=OFF,
+						temperature=GRADIENT, 
+						thickness=current_tg,
+						thicknessField='',
+						thicknessModulus=None,
+						thicknessType=UNIFORM,
+						useDensity=OFF
+						)
+					
+					# Assign sections --------------------------------------------------------------------------------------------------------------
 					
 					# -for sector
-					mdb.models[current_model].parts['sector'].Set(faces=
-						mdb.models[current_model].parts['sector'].faces[:], name='AllSectorFaces')
-					mdb.models[current_model].parts['sector'].SectionAssignment(offset=0.0, offsetField=''
-						, offsetType=MIDDLE_SURFACE, region=
-						mdb.models[current_model].parts['sector'].sets['AllSectorFaces'], sectionName='sector', 
-						thicknessAssignment=FROM_SECTION)
+					sector_part.Set(
+						faces=sector_part.faces[:],
+						name='AllSectorFaces'
+						)
+					sector_part.SectionAssignment(
+						offset=0.0,
+						offsetField='',
+						offsetType=MIDDLE_SURFACE,
+						region=sector_part.sets['AllSectorFaces'],
+						sectionName='sector', 
+						thicknessAssignment=FROM_SECTION
+						)
 		
 					# -for gusset
-					mdb.models[current_model].parts['gusset'].Set(faces=
-						mdb.models[current_model].parts['gusset'].faces[:]
-						, name='AllGussetFaces')
-					mdb.models[current_model].parts['gusset'].SectionAssignment(offset=0.0, offsetField=''
-						, offsetType=MIDDLE_SURFACE, region=
-						mdb.models[current_model].parts['gusset'].sets['AllGussetFaces'], sectionName='gusset', 
-						thicknessAssignment=FROM_SECTION)
+					gusset_part.Set(
+						faces=gusset_part.faces[:],
+						name='AllGussetFaces')
+					gusset_part.SectionAssignment(
+						offset=0.0,
+						offsetField='',
+						offsetType=MIDDLE_SURFACE,
+						region=gusset_part.sets['AllGussetFaces'],
+						sectionName='gusset', 
+						thicknessAssignment=FROM_SECTION
+						)
 					
-					# Meshing
+					# Meshing ---------------------------------------------------------------------------------------------------------------------
 					
 					# Global seeding in mm
 					seedsize = 30
 					
 					# -Sector
-					mdb.models['1-1-1-1'].parts['sector'].setMeshControls(
+					sector_part.setMeshControls(
 						algorithm=MEDIAL_AXIS,
 						elemShape=QUAD, 
-						regions=mdb.models['1-1-1-1'].parts['sector'].faces[:])
-					mdb.models['1-1-1-1'].parts['sector'].seedPart(deviationFactor=0.1, 
-						minSizeFactor=0.1, size=seedsize)
-					mdb.models['1-1-1-1'].parts['sector'].generateMesh()
+						regions=sector_part.faces[:]
+						)
+					sector_part.seedPart(
+						deviationFactor=0.1, 
+						minSizeFactor=0.1,
+						size=seedsize
+						)
+					sector_part.generateMesh()
 					
 					# -Gusset
-					mdb.models['1-1-1-1'].parts['gusset'].setMeshControls(
+					gusset_part.setMeshControls(
 						algorithm=MEDIAL_AXIS,
 						elemShape=QUAD,
-						regions=mdb.models['1-1-1-1'].parts['gusset'].faces[:])
-					mdb.models['1-1-1-1'].parts['gusset'].seedPart(deviationFactor=0.1, 
-						minSizeFactor=0.1, size=seedsize)
-					mdb.models['1-1-1-1'].parts['gusset'].generateMesh()
+						regions=gusset_part.faces[:]
+						)
+					gusset_part.seedPart(
+						deviationFactor=0.1, 
+						minSizeFactor=0.1,
+						size=seedsize
+						)
+					gusset_part.generateMesh()
 					
-					# Create assembly
+					# Create assembly -------------------------------------------------------------------------------------------------------------
 					
-					mdb.models[current_model].rootAssembly.DatumCsysByDefault(CARTESIAN)
+					c_assembly=c_model.rootAssembly
+					c_assembly.DatumCsysByDefault(CARTESIAN)
 					
 					# -Sectors
-					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='sector-1', part=
-						mdb.models[current_model].parts['sector'])
-					mdb.models[current_model].rootAssembly.DatumAxisByPrincipalAxis(principalAxis=ZAXIS)
-					mdb.models[current_model].rootAssembly.RadialInstancePattern(axis=(0.0, 0.0, 1.0), 
-						instanceList=('sector-1', ), number=3, point=(0.0, 0.0, 0.0), totalAngle=
-						240.0)
+					c_assembly.Instance(
+						dependent=ON,
+						name='sector-1',
+						part=sector_part
+						)
+					c_assembly.DatumAxisByPrincipalAxis(
+						principalAxis=ZAXIS
+						)
+					c_assembly.RadialInstancePattern(
+						axis=(0.0, 0.0, 1.0), 
+						instanceList=('sector-1', ),
+						number=3, point=(0.0, 0.0, 0.0),
+						totalAngle=240.0
+						)
 		
 					# -Gusset plate
 					
 					# --Create the instances
-					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-1', part=
-						mdb.models[current_model].parts['gusset'])
-					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-2', part=
-						mdb.models[current_model].parts['gusset'])
-					mdb.models[current_model].rootAssembly.Instance(dependent=ON, name='gusset-3', part=
-						mdb.models[current_model].parts['gusset'])
+					g1_instance=c_assembly.Instance(
+						dependent=ON,
+						name='gusset-1',
+						part=gusset_part
+						)
+					g2_instance=c_assembly.Instance(
+						dependent=ON,
+						name='gusset-2',
+						part=gusset_part
+						)
+					g3_instance=c_assembly.Instance(
+						dependent=ON,
+						name='gusset-3',
+						part=gusset_part
+						)
 					
 					# --Translate them to the right position
-					mdb.models[current_model].rootAssembly.instances['gusset-2'].translate(vector=(
+					g2_instance.translate(vector=(
 						0.0, 0.0, (current_l + current_d)))
-					mdb.models[current_model].rootAssembly.instances['gusset-3'].translate(vector=(
+					g3_instance.translate(vector=(
 						0.0, 0.0, 2*(current_l + current_d)))
 					
 					# Create reference points for BCs/loads.
 					
 					# -RPs for the faces at the two ends of the columns
-					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, 0.0))
-					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (2*current_l + 3*current_d)))
+					c_assembly.ReferencePoint(point=(0.0, 0.0, 0.0))
+					c_assembly.ReferencePoint(point=(0.0, 0.0, (2*current_l + 3*current_d)))
 					
 					# - RP at the middle
-					mdb.models[current_model].rootAssembly.ReferencePoint(point=(0.0, 0.0, (current_l + 1.5*current_d)))
+					c_assembly.ReferencePoint(point=(0.0, 0.0, (current_l + 1.5*current_d)))
 					
-					# Meshing
-					
-#					# -Sector
-#					mdb.models['1-1-1-1'].parts['sector'].setMeshControls(elemShape=QUAD, regions=
-#						mdb.models['1-1-1-1'].parts['sector'].faces[:])
-#					mdb.models['1-1-1-1'].parts['sector'].seedPart(deviationFactor=0.1, 
-#						minSizeFactor=0.1, size=6.3)
-#					mdb.models['1-1-1-1'].parts['sector'].generateMesh()
-#					
-#					# -Gusset
-#					mdb.models['1-1-1-1'].parts['gusset'].setMeshControls(elemShape=QUAD, regions=
-#						mdb.models['1-1-1-1'].parts['gusset'].faces[:])
-#					mdb.models['1-1-1-1'].parts['gusset'].seedPart(deviationFactor=0.1, 
-#						minSizeFactor=0.1, size=6.3)
-#					mdb.models['1-1-1-1'].parts['gusset'].generateMesh()
-					
-					
-		
-#		
+
 #					# Create buckling step
-#					mdb.models[current_model].BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 
+#					c_model.BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 
 #						previous='Initial', vectors=18)
 #		
 #					# Create face couplings for BCs
 #					# -Face 1
-#					mdb.models[current_model].rootAssembly.Set(name='m_Set-1', referencePoints=(
-#						mdb.models[current_model].rootAssembly.referencePoints[17], ))
-#					mdb.models[current_model].rootAssembly.Set(edges=
-#						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
+#					c_assembly.Set(name='m_Set-1', referencePoints=(
+#						c_assembly.referencePoints[17], ))
+#					c_assembly.Set(edges=
+#						c_assembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
 #						mask=('[#49249244 #92492492 #924 ]', ), )+\
-#						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
+#						c_assembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
 #						mask=('[#49249244 #92492492 #924 ]', ), )+\
-#						mdb.models[current_model].rootAssembly.instances['sector-1'].edges.getSequenceFromMask(
+#						c_assembly.instances['sector-1'].edges.getSequenceFromMask(
 #						mask=('[#49249244 #92492492 #924 ]', ), ), name='s_Set-1')
-#					mdb.models[current_model].Coupling(controlPoint=
-#						mdb.models[current_model].rootAssembly.sets['m_Set-1'], couplingType=KINEMATIC, 
+#					c_model.Coupling(controlPoint=
+#						c_assembly.sets['m_Set-1'], couplingType=KINEMATIC, 
 #						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-1', 
-#						surface=mdb.models[current_model].rootAssembly.sets['s_Set-1'], u1=ON, u2=ON, u3=
+#						surface=c_assembly.sets['s_Set-1'], u1=ON, u2=ON, u3=
 #						ON, ur1=ON, ur2=ON, ur3=ON)
 #						
 #					# -Face 2
-#					mdb.models[current_model].rootAssembly.Set(name='m_Set-3', referencePoints=(
-#						mdb.models[current_model].rootAssembly.referencePoints[18], ))
-#					mdb.models[current_model].rootAssembly.Set(edges=
-#						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
+#					c_assembly.Set(name='m_Set-3', referencePoints=(
+#						c_assembly.referencePoints[18], ))
+#					c_assembly.Set(edges=
+#						c_assembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
 #						mask=('[#92492491 #24924924 #249 ]', ), )+\
-#						mdb.models[current_model].rootAssembly.instances['sector-1'].edges.getSequenceFromMask(
+#						c_assembly.instances['sector-1'].edges.getSequenceFromMask(
 #						mask=('[#92492491 #24924924 #249 ]', ), )+\
-#						mdb.models[current_model].rootAssembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
+#						c_assembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
 #						mask=('[#92492491 #24924924 #249 ]', ), ), name='s_Set-3')
-#					mdb.models[current_model].Coupling(controlPoint=
-#						mdb.models[current_model].rootAssembly.sets['m_Set-3'], couplingType=KINEMATIC, 
+#					c_model.Coupling(controlPoint=
+#						c_assembly.sets['m_Set-3'], couplingType=KINEMATIC, 
 #						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-2', 
-#						surface=mdb.models[current_model].rootAssembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
+#						surface=c_assembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
 #						ON, ur1=ON, ur2=ON, ur3=ON)
 #						
 #					# Fasteners
 #					# -Create datum points
-#					mdb.models[current_model].rootAssembly.DatumPointByOffset(point=
-#						mdb.models[current_model].rootAssembly.instances['sector-1'].InterestingPoint(
-#						mdb.models[current_model].rootAssembly.instances['sector-1'].edges[2], MIDDLE), 
+#					c_assembly.DatumPointByOffset(point=
+#						c_assembly.instances['sector-1'].InterestingPoint(
+#						c_assembly.instances['sector-1'].edges[2], MIDDLE), 
 #						vector=(0.0, 0.0, 50.0))
 #					# Boundary conditions
-#					mdb.models[current_model].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+#					c_model.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
 #						distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-1', 
-#						region=mdb.models[current_model].rootAssembly.sets['m_Set-1'], u1=SET, u2=SET, u3=
+#						region=c_assembly.sets['m_Set-1'], u1=SET, u2=SET, u3=
 #						UNSET, ur1=UNSET, ur2=UNSET, ur3=SET)
-#					mdb.models[current_model].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+#					c_model.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
 #						distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-2', 
-#						region=mdb.models[current_model].rootAssembly.sets['m_Set-3'], u1=SET, u2=SET, u3=
+#						region=c_assembly.sets['m_Set-3'], u1=SET, u2=SET, u3=
 #						SET, ur1=UNSET, ur2=UNSET, ur3=SET)
 #						
 #					# Apply load
-#					mdb.models[current_model].ConcentratedForce(cf3=1000.0, createStepName='Step-1', 
+#					c_model.ConcentratedForce(cf3=1000.0, createStepName='Step-1', 
 #						distributionType=UNIFORM, field='', localCsys=None, name='Load-1', region=
-#						mdb.models[current_model].rootAssembly.sets['m_Set-1'])
+#						c_assembly.sets['m_Set-1'])
 #		
 #					# Meshing
-#					mdb.models[current_model].parts['gusset'].seedPart(deviationFactor=0.1, minSizeFactor=
+#					gusset_part.seedPart(deviationFactor=0.1, minSizeFactor=
 #						0.1, size=25.0)
-#					mdb.models[current_model].parts['sector'].seedPart(deviationFactor=0.1, minSizeFactor=
+#					sector_part.seedPart(deviationFactor=0.1, minSizeFactor=
 #						0.1, size=25.0)
-#					mdb.models[current_model].parts['sector'].generateMesh()
-#					mdb.models[current_model].parts['gusset'].generateMesh()
-#					mdb.models[current_model].rootAssembly.regenerate()
+#					sector_part.generateMesh()
+#					gusset_part.generateMesh()
+#					c_assembly.regenerate()
 #					
 ##					# Modify keyword for nodefile
-##					mdb.models[current_model].keywordBlock.synchVersions(storeNodesAndElements=False)
-##					mdb.models[current_model].keywordBlock.replace(101, '\n*Output, field, variable=PRESELECT\n*NODEFILE\nU')
+##					c_model.keywordBlock.synchVersions(storeNodesAndElements=False)
+##					c_model.keywordBlock.replace(101, '\n*Output, field, variable=PRESELECT\n*NODEFILE\nU')
 #					
 ##					2nd Phase: Convert model to riks analysis
 #				
 #					riks_model = 'RIKS-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)
 #			
 #					# copy model from buckling analysis
-#					mdb.Model(name=riks_model, objectToCopy=mdb.models[current_model])
+#					mdb.Model(name=riks_model, objectToCopy=c_model)
 #			
 ##					# Delete keyword nodefile
 ##					mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
