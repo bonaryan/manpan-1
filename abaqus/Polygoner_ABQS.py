@@ -111,6 +111,7 @@ for i in range(1):
 										
 					# Make holes
 					for o in range(int(bolts_z.shape[0])):
+#					for o in range(5):
 						mdb.models['1-1-1-1'].parts['sector'].HoleBlindFromEdges(depth=1.0, diameter=d_washer
 							, distance1=bolts_z[o], distance2=bolts_w, edge1=
 							mdb.models['1-1-1-1'].parts['sector'].edges.getClosest(coordinates=((profiles[i][j][k][0][1], profiles[i][j][k][1][1], 0),))[0][0], edge2=
@@ -132,10 +133,11 @@ for i in range(1):
 					# Partition the sector
 					
 					# -Number of datum planes
-					n_dat = int(len(mdb.models['1-1-1-1'].parts['sector'].datums))
+#					n_dat = int(len(mdb.models['1-1-1-1'].parts['sector'].datums))
 					
 					# cut all the faces using the datum planes
-					for o in range(n_dat-2):						
+#					for o in range((n_dat-2)/3):
+					for o in range(1):						
 						mdb.models['1-1-1-1'].parts['sector'].PartitionFaceByDatumPlane(datumPlane=
 							mdb.models['1-1-1-1'].parts['sector'].datums.items()[o+1][1], faces=
 							mdb.models['1-1-1-1'].parts['sector'].faces[:])
