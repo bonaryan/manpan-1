@@ -46,11 +46,11 @@ for i in range(1):
 				current_l = float(profiles_meta[i][j][k][l][7][0])
 				current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profiles[i][j][k][1][0]-profiles[i][j][k][1][2])**2)
 				
-				# Create model --------------------------------------------------------------------------------------------------------------
+				# Create model ----------------------------------------------------------------------------------------------------------------------
 				mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
 				c_model = mdb.models[current_model]
 				
-				# Create Parts --------------------------------------------------------------------------------------------------------------
+				# Create Parts ----------------------------------------------------------------------------------------------------------------------
 				
 				# Sector
 				
@@ -150,8 +150,8 @@ for i in range(1):
 					
 					# cut all the faces using the datum planes
 										
-#					for o in range((n_dat-2)):
-					for o in range(2):
+					for o in range((n_dat-2)):
+#					for o in range(2):
 						sector_part.PartitionFaceByDatumPlane(
 							datumPlane=sector_part.datums.items()[o+1][1],
 							faces=sector_part.faces[:]
@@ -269,12 +269,12 @@ for i in range(1):
 						point2=gusset_part.datum.items()[5][1],
 						)
 					
-					# Material --------------------------------------------------------------------------------------------------------------------
+					# Material ----------------------------------------------------------------------------------------------------------------------
 					
 					c_model.Material(name='pure-elastic')
 					c_model.materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
 		
-					# Create sections -------------------------------------------------------------------------------------------------------------
+					# Create sections ---------------------------------------------------------------------------------------------------------------
 					
 					# -for sector
 					c_model.HomogeneousShellSection(
@@ -310,7 +310,7 @@ for i in range(1):
 						useDensity=OFF
 						)
 					
-					# Assign sections --------------------------------------------------------------------------------------------------------------
+					# Assign sections ---------------------------------------------------------------------------------------------------------------
 					
 					# -for sector
 					sector_part.Set(
@@ -339,38 +339,38 @@ for i in range(1):
 						thicknessAssignment=FROM_SECTION
 						)
 					
-#					# Meshing ---------------------------------------------------------------------------------------------------------------------
-#					
-#					# Global seeding in mm
-#					seedsize = 30
-#					
-#					# -Sector
-#					sector_part.setMeshControls(
-#						algorithm=MEDIAL_AXIS,
-#						elemShape=QUAD, 
-#						regions=sector_part.faces[:]
-#						)
-#					sector_part.seedPart(
-#						deviationFactor=0.1, 
-#						minSizeFactor=0.1,
-#						size=seedsize
-#						)
-#					sector_part.generateMesh()
-#					
-#					# -Gusset
-#					gusset_part.setMeshControls(
-#						algorithm=MEDIAL_AXIS,
-#						elemShape=QUAD,
-#						regions=gusset_part.faces[:]
-#						)
-#					gusset_part.seedPart(
-#						deviationFactor=0.1, 
-#						minSizeFactor=0.1,
-#						size=seedsize
-#						)
-#					gusset_part.generateMesh()
+					# Meshing -----------------------------------------------------------------------------------------------------------------------
 					
-					# Create assembly -------------------------------------------------------------------------------------------------------------
+					# Global seeding in mm
+					seedsize = 30
+					
+					# -Sector
+					sector_part.setMeshControls(
+						algorithm=MEDIAL_AXIS,
+						elemShape=QUAD, 
+						regions=sector_part.faces[:]
+						)
+					sector_part.seedPart(
+						deviationFactor=0.1, 
+						minSizeFactor=0.1,
+						size=seedsize
+						)
+					sector_part.generateMesh()
+					
+					# -Gusset
+					gusset_part.setMeshControls(
+						algorithm=MEDIAL_AXIS,
+						elemShape=QUAD,
+						regions=gusset_part.faces[:]
+						)
+					gusset_part.seedPart(
+						deviationFactor=0.1, 
+						minSizeFactor=0.1,
+						size=seedsize
+						)
+					gusset_part.generateMesh()
+					
+					# Create assembly ---------------------------------------------------------------------------------------------------------------
 					
 					c_assembly=c_model.rootAssembly
 					c_assembly.DatumCsysByDefault(CARTESIAN)
@@ -393,6 +393,8 @@ for i in range(1):
 					
 					s2_instance=s3_instance[0]
 					s3_instance=s3_instance[1]
+					
+					s_instance = (s1_instance,s2_instance ,s3_instance)
 		
 					# -Gusset plate
 					
@@ -421,9 +423,10 @@ for i in range(1):
 						vector=(0.0, 0.0, 2*(current_l + current_d))
 						)
 					
-					# Interactions ---------------------------------------------------------------------
+					# Interactions ------------------------------------------------------------------------------------------------------------------
 					
 					# Create sets node regions to be used for the tie and coupling constraints
+					# initiate variables to store points for findAt
 					
 					holes11=()
 					holes12=()
@@ -441,9 +444,10 @@ for i in range(1):
 					
 					gh1 = (gp1[0]-bolts_w*cos(5*pi/6), gp1[1]-bolts_w*sin(5*pi/6))
 					gh2 = (gp2[0]-bolts_w*cos(-pi/2), gp2[1]-bolts_w*sin(-pi/2))
-					gh3 = (gp3[0]-bolts_w*cos(pi/6), gp3[1]-bolts_w*sin(pi/6))  
-						  
-						  
+					gh3 = (gp3[0]-bolts_w*cos(pi/6), gp3[1]-bolts_w*sin(pi/6))
+					
+					gh=(gh1, gh2, gh3)
+					
 					# Rotation matrix to multiply the previous point in order to get the points of the other 2 gusset fins
 					Rmat = np.array([[cos(-2*pi/3), -sin(-2*pi/3)], [sin(-2*pi/3), cos(-2*pi/3)]])
 					
@@ -453,6 +457,8 @@ for i in range(1):
 					
 					sh31 = sh21.dot(Rmat)
 					sh32 = sh22.dot(Rmat)
+					
+					sh = ((sh11, sh12), (sh21, sh22), (sh31, sh32))
 					
 					bolts_zg = (tuple(bolts_z1)+ tuple(bolts_z3)+ tuple(bolts_z5))
 					for o in (bolts_zg):
@@ -471,6 +477,146 @@ for i in range(1):
 						gholes2 = gholes2+((gh2[0], gh2[1], o),)
 						gholes3 = gholes3+((gh2[0], gh3[1], o),)
 					
+					# Recreate the sets
+					# Create the necessary sets and the tie constraints for all the bolts
+					
+					# End 1 connection
+					for oo in (range(3)):
+						ii=1
+						for o in tuple(bolts_z1):
+							c_assembly.Set(
+								edges=g1_instance.edges.getByBoundingSphere(
+									center=(gh[oo-3][0], gh[oo-3][1], float(o)),
+									radius=d_washer/2+1
+									),
+								name='b'+str(ii)+str(oo)+'-gusset1'
+								)
+							
+							c_assembly.Set(
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector1'
+								)
+							
+							c_model.Tie(
+								adjust=ON,
+								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset1'],
+								name='b'+str(ii)+str(oo)+'-tie', 
+								positionToleranceMethod=COMPUTED,
+								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector1'],
+								thickness=ON, 
+								tieRotations=ON
+								)
+							ii+=1
+					
+					# Span 1
+					for oo in (range(3)):
+						ii=1
+						for o in tuple(bolts_z2):
+							c_assembly.Set(
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector21'
+								)
+							
+							c_assembly.Set(
+								edges=s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector22'
+								)
+							
+							c_model.Tie(
+								adjust=ON,
+								master=c_assembly.sets['b'+str(ii)+str(oo)+'-sector21'],
+								name='b'+str(ii)+str(oo)+'-tie2', 
+								positionToleranceMethod=COMPUTED,
+								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector22'],
+								thickness=ON, 
+								tieRotations=ON
+								)
+							ii+=1
+					
+					# middle connection
+					for oo in (range(3)):
+						ii=1
+						for o in tuple(bolts_z3):
+							c_assembly.Set(
+								edges=g2_instance.edges.getByBoundingSphere(
+									center=(gh[oo-3][0], gh[oo-3][1], float(o)),
+									radius=d_washer/2+1
+									),
+								name='b'+str(ii)+str(oo)+'-gusset2'
+								)
+							
+							c_assembly.Set(
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector3'
+								)
+							
+							c_model.Tie(
+								adjust=ON,
+								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset2'],
+								name='b'+str(ii)+str(oo)+'-tie3', 
+								positionToleranceMethod=COMPUTED,
+								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector3'],
+								thickness=ON, 
+								tieRotations=ON
+								)
+							ii+=1
+					
+					# Span 1
+					for oo in (range(3)):
+						ii=1
+						for o in tuple(bolts_z4):
+							c_assembly.Set(
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector41'
+								)
+							
+							c_assembly.Set(
+								edges=s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector42'
+								)
+							
+							c_model.Tie(
+								adjust=ON,
+								master=c_assembly.sets['b'+str(ii)+str(oo)+'-sector41'],
+								name='b'+str(ii)+str(oo)+'-tie4', 
+								positionToleranceMethod=COMPUTED,
+								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector42'],
+								thickness=ON, 
+								tieRotations=ON
+								)
+							ii+=1
+					
+					# End 2 connection
+					for oo in (range(3)):
+						ii=1
+						for o in tuple(bolts_z5):
+							c_assembly.Set(
+								edges=g3_instance.edges.getByBoundingSphere(
+									center=(gh[oo-3][0], gh[oo-3][1], float(o)),
+									radius=d_washer/2+1
+									),
+								name='b'+str(ii)+str(oo)+'-gusset3'
+								)
+							
+							c_assembly.Set(
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-sector5'
+								)
+							
+							c_model.Tie(
+								adjust=ON,
+								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset3'],
+								name='b'+str(ii)+str(oo)+'-tie5', 
+								positionToleranceMethod=COMPUTED,
+								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector5'],
+								thickness=ON, 
+								tieRotations=ON
+								)
+							ii+=1
+					
 					# Create reference points for BCs/loads.
 					
 					# -RPs for the faces at the two ends of the columns
@@ -481,88 +627,49 @@ for i in range(1):
 					c_assembly.ReferencePoint((0.0, 0.0, (current_l + 1.5*current_d)))
 					
 					
-					# Bolt tie constraints
+					# - End face couplings to reference points
 					
-					for o in range(len(bolts_zg)):
-						set1 = c_assembly.Set(
-							edges=g1_instance.edges.getByBoundingSphere(
-								center=gholes1[o],
-								radius=d_washer/2+1
-								),
-							name='b'+str(o)+'-gusset'
-							)
-							
-						set2 = c_assembly.Set(
-							edges=s1_instance.edges.findAt(((holes11[o][0], holes11[o][1], holes11[o][2]-d_washer/2), ), )+\
-							s2_instance.edges.findAt(((holes22[o][0], holes22[o][1], holes22[o][2]-d_washer/2), ), ),
-							name='b'+str(o)+'-sector'
-							)
-							
-						c_model.Tie(
-							adjust=ON,
-							master=c_assembly.sets['b'+str(o)+'-gusset'],
-							name='b'+str(o)+'-tie', 
-							positionToleranceMethod=COMPUTED,
-							slave=c_assembly.sets['b'+str(o)+'-sector'],
-							thickness=ON, 
-							tieRotations=ON
-							)
+					# End 1
+					c_assembly.Set(
+						name='RP-1-set', 
+						referencePoints=(c_assembly.referencePoints.findAt((0, 0, 0)), )
+						)
 					
+					c_assembly.Set(
+						edges=g1_instance.edges.getByBoundingBox(-current_d,-current_d,0,current_d,current_d,0),
+						name='end1-face',
+						)
 					
-#					# - End face couplings to reference points
-#					
-#					c_assembly.Set(
-#						name='RP-1-set', 
-#						referencePoints=(c_assembly.referencePoints.findAt((0, 0, 0)), )
-#						)
-#					
-#					c_assembly.Set(
-#						g1_instance.edges.findAt(
-#							((32.563453, 18.800518, 0.0), ),
-#							((0.0, -160.904145, 0.0), ),
-#							((-32.563453, 18.800518, 0.0), ),
-#							((139.347077, 80.452073, 0.0), ),
-#							((0.0, -37.601036, 0.0), ),
-#							((-139.347077, 80.452073, 0.0), ), 
-#							),
-#						name='end1-face'
-#						)
-#					
-#					c_model.Coupling(
-#						controlPoint=c_assembly.sets['RP-1-set'], 
-#						couplingType=KINEMATIC,
-#						influenceRadius=WHOLE_SURFACE,
-#						localCsys=None,
-#						name='end1-coupling', 
-#						surface=c_assembly.sets['end1-face'],
-#						u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
-#						)
-#						
-#					c_assembly.Set(
-#						name='RP-2-set',
-#						referencePoints=(c_assembly.referencePoints[18], )
-#						)
-#					
-#					c_assembly.Set(
-#						g3_instance.edges.findAt(
-#							((97.690358, 56.401554, 11090.532103), ),
-#							((0.0, -160.904145, 11090.532103), ),
-#							((-97.690358, 56.401554, 11090.532103), ),
-#							((157.533611, 90.952073, 11090.532103), ),
-#							((0.0, -37.601036, 11090.532103), ),
-#							((-157.533611, 90.952073, 11090.532103), ), 
-#							),
-#						name='end2-face'
-#						)
-#						
-#					c_model.Coupling(
-#						controlPoint=c_assembly.sets['RP-2-set'], 
-#						couplingType=KINEMATIC, influenceRadius=WHOLE_SURFACE,
-#						localCsys=None,
-#						name='end2-coupling', 
-#						surface=c_assembly.sets['end2-face'],
-#						u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
-#						)
+					c_model.Coupling(
+						controlPoint=c_assembly.sets['RP-1-set'], 
+						couplingType=KINEMATIC,
+						influenceRadius=WHOLE_SURFACE,
+						localCsys=None,
+						name='end1-coupling', 
+						surface=c_assembly.sets['end1-face'],
+						u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
+						)
+					
+					# End 2
+					
+					c_assembly.Set(
+						name='RP-2-set',
+						referencePoints=(c_assembly.referencePoints.findAt((0, 0, 2*(current_l+1.5*current_d))), )
+						)
+					
+					c_assembly.Set(
+						edges=g3_instance.edges.getByBoundingBox(-current_d,-current_d,2*(current_l+1.5*current_d),current_d,current_d,2*(current_l+1.5*current_d)),
+						name='end2-face'
+						)
+						
+					c_model.Coupling(
+						controlPoint=c_assembly.sets['RP-2-set'], 
+						couplingType=KINEMATIC, influenceRadius=WHOLE_SURFACE,
+						localCsys=None,
+						name='end2-coupling', 
+						surface=c_assembly.sets['end2-face'],
+						u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
+						)
 #					
 #
 #					
@@ -595,41 +702,9 @@ for i in range(1):
 #					# Step -----------------------------------------------------------------------------------
 #					
 #					load_step = c_model.StaticStep(name='Load', previous='Initial')
-#					
-#					
-#					c_assembly.Set(name='m_Set-1', referencePoints=(
-#						c_assembly.referencePoints[17], ))
-#					c_assembly.Set(edges=
-#						c_assembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#49249244 #92492492 #924 ]', ), )+\
-#						c_assembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#49249244 #92492492 #924 ]', ), )+\
-#						c_assembly.instances['sector-1'].edges.getSequenceFromMask(
-#						mask=('[#49249244 #92492492 #924 ]', ), ), name='s_Set-1')
-#					c_model.Coupling(controlPoint=
-#						c_assembly.sets['m_Set-1'], couplingType=KINEMATIC, 
-#						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-1', 
-#						surface=c_assembly.sets['s_Set-1'], u1=ON, u2=ON, u3=
-#						ON, ur1=ON, ur2=ON, ur3=ON)
-#						
-#					# -Face 2
-#					c_assembly.Set(name='m_Set-3', referencePoints=(
-#						c_assembly.referencePoints[18], ))
-#					c_assembly.Set(edges=
-#						c_assembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#92492491 #24924924 #249 ]', ), )+\
-#						c_assembly.instances['sector-1'].edges.getSequenceFromMask(
-#						mask=('[#92492491 #24924924 #249 ]', ), )+\
-#						c_assembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#92492491 #24924924 #249 ]', ), ), name='s_Set-3')
-#					c_model.Coupling(controlPoint=
-#						c_assembly.sets['m_Set-3'], couplingType=KINEMATIC, 
-#						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-2', 
-#						surface=c_assembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
-#						ON, ur1=ON, ur2=ON, ur3=ON)
-					
-					
-					
+
+
+
 
 #					# Create buckling step
 #					c_model.BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 
@@ -667,37 +742,8 @@ for i in range(1):
 #						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-2', 
 #						surface=c_assembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
 #						ON, ur1=ON, ur2=ON, ur3=ON)
-#						
-#					# Fasteners
-#					# -Create datum points
-#					c_assembly.DatumPointByOffset(point=
-#						c_assembly.instances['sector-1'].InterestingPoint(
-#						c_assembly.instances['sector-1'].edges[2], MIDDLE), 
-#						vector=(0.0, 0.0, 50.0))
-#					# Boundary conditions
-#					c_model.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
-#						distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-1', 
-#						region=c_assembly.sets['m_Set-1'], u1=SET, u2=SET, u3=
-#						UNSET, ur1=UNSET, ur2=UNSET, ur3=SET)
-#					c_model.DisplacementBC(amplitude=UNSET, createStepName='Initial', 
-#						distributionType=UNIFORM, fieldName='', localCsys=None, name='BC-2', 
-#						region=c_assembly.sets['m_Set-3'], u1=SET, u2=SET, u3=
-#						SET, ur1=UNSET, ur2=UNSET, ur3=SET)
-#						
-#					# Apply load
-#					c_model.ConcentratedForce(cf3=1000.0, createStepName='Step-1', 
-#						distributionType=UNIFORM, field='', localCsys=None, name='Load-1', region=
-#						c_assembly.sets['m_Set-1'])
-#		
-#					# Meshing
-#					gusset_part.seedPart(deviationFactor=0.1, minSizeFactor=
-#						0.1, size=25.0)
-#					sector_part.seedPart(deviationFactor=0.1, minSizeFactor=
-#						0.1, size=25.0)
-#					sector_part.generateMesh()
-#					gusset_part.generateMesh()
-#					c_assembly.regenerate()
-#					
+
+
 ##					# Modify keyword for nodefile
 ##					c_model.keywordBlock.synchVersions(storeNodesAndElements=False)
 ##					c_model.keywordBlock.replace(101, '\n*Output, field, variable=PRESELECT\n*NODEFILE\nU')
