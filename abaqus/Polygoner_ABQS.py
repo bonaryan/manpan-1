@@ -595,7 +595,10 @@ for i in range(1):
 						)
 					
 					c_assembly.Set(
-						edges=g1_instance.edges.getByBoundingBox(-current_d,-current_d,0,current_d,current_d,0),
+						edges=g1_instance.edges.getByBoundingBox(-current_d,-current_d,0,current_d,current_d,0)+\
+						s_instance[0].edges.getByBoundingBox(-current_d,-current_d,0,current_d,current_d,0)+\
+						s_instance[1].edges.getByBoundingBox(-current_d,-current_d,0,current_d,current_d,0)+\
+						s_instance[2].edges.getByBoundingBox(-current_d,-current_d,0,current_d,current_d,0),
 						name='end1-face',
 						)
 					
@@ -617,7 +620,10 @@ for i in range(1):
 						)
 					
 					c_assembly.Set(
-						edges=g3_instance.edges.getByBoundingBox(-current_d,-current_d,2*(current_l+1.5*current_d),current_d,current_d,2*(current_l+1.5*current_d)),
+						edges=g3_instance.edges.getByBoundingBox(-current_d,-current_d,2*(current_l+1.5*current_d),current_d,current_d,2*(current_l+1.5*current_d))+\
+						s_instance[0].edges.getByBoundingBox(-current_d,-current_d,2*(current_l+1.5*current_d),current_d,current_d,2*(current_l+1.5*current_d))+\
+						s_instance[1].edges.getByBoundingBox(-current_d,-current_d,2*(current_l+1.5*current_d),current_d,current_d,2*(current_l+1.5*current_d))+\
+						s_instance[2].edges.getByBoundingBox(-current_d,-current_d,2*(current_l+1.5*current_d),current_d,current_d,2*(current_l+1.5*current_d)),
 						name='end2-face'
 						)
 						
@@ -648,7 +654,7 @@ for i in range(1):
 						localCsys=None, 
 						name='fix-end1', 
 						region=Region(referencePoints=(c_assembly.referencePoints.findAt((0, 0, 0)), )), 
-						u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET
+						u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=SET
 						)
 						
 					end2_BC=c_model.DisplacementBC(
@@ -659,7 +665,7 @@ for i in range(1):
 						localCsys=None, 
 						name='fix-end2', 
 						region=Region(referencePoints=(c_assembly.referencePoints.findAt((0, 0, 2*(current_l+1.5*current_d))), )), 
-						u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
+						u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=SET
 						)
 					# Modify the BC end-2 and apply a displacement
 					
