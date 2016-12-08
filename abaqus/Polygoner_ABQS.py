@@ -460,166 +460,120 @@ for i in range(1):
 					
 					sh = ((sh11, sh12), (sh21, sh22), (sh31, sh32))
 					
-					bolts_zg = (tuple(bolts_z1)+ tuple(bolts_z3)+ tuple(bolts_z5))
-					for o in (bolts_zg):
-						# Construct a list with the coordinates of all the bolt hole centres
-						
-						holes11=holes11+((tuple(sh11)[0], tuple(sh11)[1], o),)
-						holes12=holes12+((tuple(sh12)[0], tuple(sh12)[1], o),)
-						
-						holes21=holes21+((tuple(sh21)[0], tuple(sh21)[1], o),)
-						holes22=holes22+((tuple(sh22)[0], tuple(sh22)[1], o),)
-						
-						holes31=holes31+((tuple(sh31)[0], tuple(sh31)[1], o),)
-						holes32=holes32+((tuple(sh32)[0], tuple(sh32)[1], o),)
-						
-						gholes1 = gholes1+((gh1[0], gh1[1], o),)
-						gholes2 = gholes2+((gh2[0], gh2[1], o),)
-						gholes3 = gholes3+((gh2[0], gh3[1], o),)
+					# Create reference points for the bolt ridig body couplings
 					
-					# Recreate the sets
 					# Create the necessary sets and the tie constraints for all the bolts
 					
 					# End 1 connection
 					for oo in (range(3)):
 						ii=1
 						for o in tuple(bolts_z1):
-							c_assembly.Set(
-								edges=g1_instance.edges.getByBoundingSphere(
-									center=(gh[oo-3][0], gh[oo-3][1], float(o)),
-									radius=d_washer/2+1
-									),
-								name='b'+str(ii)+str(oo)+'-gusset1'
-								)
+							
+							c_assembly.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
 							
 							c_assembly.Set(
 								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
-								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector1'
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), )+\
+								g1_instance.edges.findAt(((gh[oo-3][0], gh[oo-3][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'set1'
 								)
 							
-							c_model.Tie(
-								adjust=ON,
-								constraintEnforcement=SURFACE_TO_SURFACE, 
-								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset1'],
-								name='b'+str(ii)+str(oo)+'-tie', 
-								positionToleranceMethod=COMPUTED,
-								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector1'],
-								thickness=ON, 
-								tieRotations=ON
+							c_model.RigidBody(
+								name='b1'+str(ii)+str(oo)+'joint1',
+								refPointRegion=Region(referencePoints=(c_assembly.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
+							    tieRegion=c_assembly.sets['b'+str(ii)+str(oo)+'set1']
 								)
+							
 							ii+=1
-					
+								
 					# Span 1
+					
 					for oo in (range(3)):
 						ii=1
 						for o in tuple(bolts_z2):
-							c_assembly.Set(
-								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector21'
-								)
 							
-							c_assembly.Set(
-								edges=s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector22'
-								)
-							
-							c_model.Tie(
-								adjust=ON,
-								constraintEnforcement=SURFACE_TO_SURFACE, 
-								master=c_assembly.sets['b'+str(ii)+str(oo)+'-sector21'],
-								name='b'+str(ii)+str(oo)+'-tie2', 
-								positionToleranceMethod=COMPUTED,
-								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector22'],
-								thickness=ON, 
-								tieRotations=ON
-								)
-							ii+=1
-					
-					# middle connection
-					for oo in (range(3)):
-						ii=1
-						for o in tuple(bolts_z3):
-							c_assembly.Set(
-								edges=g2_instance.edges.getByBoundingSphere(
-									center=(gh[oo-3][0], gh[oo-3][1], float(o)),
-									radius=d_washer/2+1
-									),
-								name='b'+str(ii)+str(oo)+'-gusset2'
-								)
+							c_assembly.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
 							
 							c_assembly.Set(
 								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
 								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector3'
+								name='b'+str(ii)+str(oo)+'-set2'
 								)
 							
-							c_model.Tie(
-								adjust=ON,
-								constraintEnforcement=SURFACE_TO_SURFACE, 
-								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset2'],
-								name='b'+str(ii)+str(oo)+'-tie3', 
-								positionToleranceMethod=COMPUTED,
-								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector3'],
-								thickness=ON, 
-								tieRotations=ON
+							c_model.RigidBody(
+								name='b1'+str(ii)+str(oo)+'span1',
+								refPointRegion=Region(referencePoints=(c_assembly.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
+							    tieRegion=c_assembly.sets['b'+str(ii)+str(oo)+'-set2']
 								)
+							
 							ii+=1
 					
-					# Span 1
+					# middle connection
+					
+					
+					for oo in (range(3)):
+						ii=1
+						for o in tuple(bolts_z3):
+							
+							c_assembly.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
+							
+							c_assembly.Set(
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), )+\
+								g2_instance.edges.findAt(((gh[oo-3][0], gh[oo-3][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'set3'
+								)
+							
+							c_model.RigidBody(
+								name='b1'+str(ii)+str(oo)+'joint2',
+								refPointRegion=Region(referencePoints=(c_assembly.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
+							    tieRegion=c_assembly.sets['b'+str(ii)+str(oo)+'set3']
+								)
+							
+							ii+=1
+					
+					# Span 2
+					
 					for oo in (range(3)):
 						ii=1
 						for o in tuple(bolts_z4):
-							c_assembly.Set(
-								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector41'
-								)
+							
+							c_assembly.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
 							
 							c_assembly.Set(
-								edges=s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector42'
+								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'-set4'
 								)
 							
-							c_model.Tie(
-								adjust=ON,
-								constraintEnforcement=SURFACE_TO_SURFACE, 
-								master=c_assembly.sets['b'+str(ii)+str(oo)+'-sector41'],
-								name='b'+str(ii)+str(oo)+'-tie4', 
-								positionToleranceMethod=COMPUTED,
-								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector42'],
-								thickness=ON, 
-								tieRotations=ON
+							c_model.RigidBody(
+								name='b1'+str(ii)+str(oo)+'span2',
+								refPointRegion=Region(referencePoints=(c_assembly.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
+							    tieRegion=c_assembly.sets['b'+str(ii)+str(oo)+'-set4']
 								)
+							
 							ii+=1
 					
 					# End 2 connection
 					for oo in (range(3)):
 						ii=1
 						for o in tuple(bolts_z5):
-							c_assembly.Set(
-								edges=g3_instance.edges.getByBoundingSphere(
-									center=(gh[oo-3][0], gh[oo-3][1], float(o)),
-									radius=d_washer/2+1
-									),
-								name='b'+str(ii)+str(oo)+'-gusset3'
-								)
+							
+							c_assembly.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
 							
 							c_assembly.Set(
 								edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
-								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
-								name='b'+str(ii)+str(oo)+'-sector5'
+								s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), )+\
+								g3_instance.edges.findAt(((gh[oo-3][0], gh[oo-3][1], float(o)-d_washer/2), ), ),
+								name='b'+str(ii)+str(oo)+'set5'
 								)
 							
-							c_model.Tie(
-								adjust=ON,
-								constraintEnforcement=SURFACE_TO_SURFACE, 
-								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset3'],
-								name='b'+str(ii)+str(oo)+'-tie5', 
-								positionToleranceMethod=COMPUTED,
-								slave=c_assembly.sets['b'+str(ii)+str(oo)+'-sector5'],
-								thickness=ON, 
-								tieRotations=ON
+							c_model.RigidBody(
+								name='b1'+str(ii)+str(oo)+'joint3',
+								refPointRegion=Region(referencePoints=(c_assembly.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
+							    tieRegion=c_assembly.sets['b'+str(ii)+str(oo)+'set5']
 								)
+							
 							ii+=1
 					
 					# Create reference points for BCs/loads.
@@ -707,11 +661,13 @@ for i in range(1):
 						region=Region(referencePoints=(c_assembly.referencePoints.findAt((0, 0, 2*(current_l+1.5*current_d))), )), 
 						u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
 						)
+					# Modify the BC end-2 and apply a displacement
 					
 					c_model.boundaryConditions['fix-end2'].setValuesInStep(
 						stepName='Load',
 						u3=-5.0)
 					
+					# Create the job
 					
 					c_job=mdb.Job(
 						atTime=None,
@@ -726,7 +682,7 @@ for i in range(1):
 						model=current_model,
 						modelPrint=OFF, 
 					    multiprocessingMode=DEFAULT,
-						name='Job'+current_model,
+						name='Job-'+current_model,
 						nodalOutputPrecision=SINGLE, 
 					    numCpus=1,
 						numGPUs=0,
