@@ -31,7 +31,7 @@ profiles_file.close()
 #for i in range(profiles.shape[0]):
 #	for j in range(profiles.shape[1]):
 #		for k in range(profiles.shape[2]):
-#			for l in range(profiles_meta.shape[3])
+#			for l in range(profiles_meta.shape[3]):
 for i in range(1):
 	for j in range(1):
 		for k in range(1):
@@ -500,6 +500,7 @@ for i in range(1):
 							
 							c_model.Tie(
 								adjust=ON,
+								constraintEnforcement=SURFACE_TO_SURFACE, 
 								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset1'],
 								name='b'+str(ii)+str(oo)+'-tie', 
 								positionToleranceMethod=COMPUTED,
@@ -525,6 +526,7 @@ for i in range(1):
 							
 							c_model.Tie(
 								adjust=ON,
+								constraintEnforcement=SURFACE_TO_SURFACE, 
 								master=c_assembly.sets['b'+str(ii)+str(oo)+'-sector21'],
 								name='b'+str(ii)+str(oo)+'-tie2', 
 								positionToleranceMethod=COMPUTED,
@@ -554,6 +556,7 @@ for i in range(1):
 							
 							c_model.Tie(
 								adjust=ON,
+								constraintEnforcement=SURFACE_TO_SURFACE, 
 								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset2'],
 								name='b'+str(ii)+str(oo)+'-tie3', 
 								positionToleranceMethod=COMPUTED,
@@ -579,6 +582,7 @@ for i in range(1):
 							
 							c_model.Tie(
 								adjust=ON,
+								constraintEnforcement=SURFACE_TO_SURFACE, 
 								master=c_assembly.sets['b'+str(ii)+str(oo)+'-sector41'],
 								name='b'+str(ii)+str(oo)+'-tie4', 
 								positionToleranceMethod=COMPUTED,
@@ -608,6 +612,7 @@ for i in range(1):
 							
 							c_model.Tie(
 								adjust=ON,
+								constraintEnforcement=SURFACE_TO_SURFACE, 
 								master=c_assembly.sets['b'+str(ii)+str(oo)+'-gusset3'],
 								name='b'+str(ii)+str(oo)+'-tie5', 
 								positionToleranceMethod=COMPUTED,
@@ -670,116 +675,69 @@ for i in range(1):
 						surface=c_assembly.sets['end2-face'],
 						u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
 						)
-#					
-#
-#					
-#					# Boundary Conditions --------------------------------------------------------------
-#
-#					
-#					# BCs					
-#					end1-BC=mdb.models['1-1-1-1'].DisplacementBC(
-#						amplitude=UNSET, 
-#						createStepName='Initial', 
-#						distributionType=UNIFORM, 
-#						fieldName='', 
-#						localCsys=None, 
-#						name='fix-end1', 
-#						region=Region(referencePoints=(mdb.models['1-1-1-1'].rootAssembly.referencePoints[15], )), 
-#						u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET
-#						)
-#						
-#					end1-BC=mdb.models['1-1-1-1'].DisplacementBC(
-#						amplitude=UNSET,
-#						createStepName='Initial', 
-#						distributionType=UNIFORM, 
-#						fieldName='', 
-#						localCsys=None, 
-#						name='fix-end2', 
-#						region=Region(referencePoints=(mdb.models['1-1-1-1'].rootAssembly.referencePoints[16], )), 
-#						u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET
-#						)
-#					
-#					# Step -----------------------------------------------------------------------------------
-#					
-#					load_step = c_model.StaticStep(name='Load', previous='Initial')
-
-
-
-
-#					# Create buckling step
-#					c_model.BuckleStep(maxIterations=300, name='Step-1', numEigen=10, 
-#						previous='Initial', vectors=18)
-#		
-#					# Create face couplings for BCs
-#					# -Face 1
-#					c_assembly.Set(name='m_Set-1', referencePoints=(
-#						c_assembly.referencePoints[17], ))
-#					c_assembly.Set(edges=
-#						c_assembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#49249244 #92492492 #924 ]', ), )+\
-#						c_assembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#49249244 #92492492 #924 ]', ), )+\
-#						c_assembly.instances['sector-1'].edges.getSequenceFromMask(
-#						mask=('[#49249244 #92492492 #924 ]', ), ), name='s_Set-1')
-#					c_model.Coupling(controlPoint=
-#						c_assembly.sets['m_Set-1'], couplingType=KINEMATIC, 
-#						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-1', 
-#						surface=c_assembly.sets['s_Set-1'], u1=ON, u2=ON, u3=
-#						ON, ur1=ON, ur2=ON, ur3=ON)
-#						
-#					# -Face 2
-#					c_assembly.Set(name='m_Set-3', referencePoints=(
-#						c_assembly.referencePoints[18], ))
-#					c_assembly.Set(edges=
-#						c_assembly.instances['sector-1-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#92492491 #24924924 #249 ]', ), )+\
-#						c_assembly.instances['sector-1'].edges.getSequenceFromMask(
-#						mask=('[#92492491 #24924924 #249 ]', ), )+\
-#						c_assembly.instances['sector-1-rad-2-rad-2'].edges.getSequenceFromMask(
-#						mask=('[#92492491 #24924924 #249 ]', ), ), name='s_Set-3')
-#					c_model.Coupling(controlPoint=
-#						c_assembly.sets['m_Set-3'], couplingType=KINEMATIC, 
-#						influenceRadius=WHOLE_SURFACE, localCsys=None, name='Constraint-2', 
-#						surface=c_assembly.sets['s_Set-3'], u1=ON, u2=ON, u3=
-#						ON, ur1=ON, ur2=ON, ur3=ON)
-
-
-##					# Modify keyword for nodefile
-##					c_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-##					c_model.keywordBlock.replace(101, '\n*Output, field, variable=PRESELECT\n*NODEFILE\nU')
-#					
-##					2nd Phase: Convert model to riks analysis
-#				
-#					riks_model = 'RIKS-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)
-#			
-#					# copy model from buckling analysis
-#					mdb.Model(name=riks_model, objectToCopy=c_model)
-#			
-##					# Delete keyword nodefile
-##					mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
-##					mdb.models[riks_model].keywordBlock.replace(102, '\n')
-#		
-#					# Change material model, plasticity added (more points needed in plasticity table)
-#					mdb.models[riks_model].materials['pure-elastic'].Plastic(table=((355.0, 0.0), ))
-#					mdb.models[riks_model].StaticRiksStep(maintainAttributes=True, name='Step-1', 
-#					nlgeom=ON, previous='Initial')
-#			
-#					# Load supressed
-#					mdb.models[riks_model].loads['Load-1'].suppress()
-#		
-#					# Change boundary conditions(recheck/delete the first part)
-#					mdb.models[riks_model].DisplacementBC(amplitude=UNSET, createStepName='Step-1'
-#					, distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None, name=
-#					'BC-3', region=mdb.models[riks_model].rootAssembly.sets['m_Set-1'], u1=
-#					UNSET, u2=UNSET, u3=1.0, ur1=UNSET, ur2=UNSET, ur3=UNSET)
-#					mdb.models[riks_model].boundaryConditions['BC-1'].setValuesInStep(stepName=
-#					'Step-1', u3=1.0)
-#					del mdb.models[riks_model].boundaryConditions['BC-3']
-#		
-##					# Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
-##					mdb.models[riks_model].keywordBlock.synchVersions(storeNodesAndElements=False)
-##					mdb.models[riks_model].keywordBlock.replace(88, 
-##					'\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=current_model,STEP=1\n1,4\n\n** STEP: Step-1\n**')
+						
+					# Step -----------------------------------------------------------------------------------
+					
+					load_step = c_model.StaticStep(
+						name='Load', 
+						previous='Initial'
+						)
+					
+					# Boundary Conditions --------------------------------------------------------------
+					
+					# BCs					
+					end1_BC=c_model.DisplacementBC(
+						amplitude=UNSET, 
+						createStepName='Initial', 
+						distributionType=UNIFORM, 
+						fieldName='', 
+						localCsys=None, 
+						name='fix-end1', 
+						region=Region(referencePoints=(c_assembly.referencePoints.findAt((0, 0, 0)), )), 
+						u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET
+						)
+						
+					end2_BC=c_model.DisplacementBC(
+						amplitude=UNSET,
+						createStepName='Initial', 
+						distributionType=UNIFORM, 
+						fieldName='', 
+						localCsys=None, 
+						name='fix-end2', 
+						region=Region(referencePoints=(c_assembly.referencePoints.findAt((0, 0, 2*(current_l+1.5*current_d))), )), 
+						u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
+						)
+					
+					c_model.boundaryConditions['fix-end2'].setValuesInStep(
+						stepName='Load',
+						u3=-5.0)
+					
+					
+					c_job=mdb.Job(
+						atTime=None,
+						contactPrint=OFF,
+						description='',
+						echoPrint=OFF, 
+					    explicitPrecision=SINGLE,
+						getMemoryFromAnalysis=True,
+						historyPrint=OFF, 
+					    memory=90,
+						memoryUnits=PERCENTAGE,
+						model=current_model,
+						modelPrint=OFF, 
+					    multiprocessingMode=DEFAULT,
+						name='Job'+current_model,
+						nodalOutputPrecision=SINGLE, 
+					    numCpus=1,
+						numGPUs=0,
+						queue=None,
+						resultsFormat=ODB,
+						scratch='',
+						type=ANALYSIS,
+						userSubroutine='',
+						waitHours=0,
+						waitMinutes=0
+						)
 
 # Delete initial model
 del mdb.models['Model-1']
