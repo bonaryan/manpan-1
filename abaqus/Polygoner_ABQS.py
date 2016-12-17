@@ -1,4 +1,5 @@
 import numpy as np
+import string
 import sys
 import os
 from part import *
@@ -773,6 +774,7 @@ c_job=mdb.Job(
 
 # Define a method to get the block number of a specific string in the keywords
 
+c_model.keywordBlock.synchVersions()
 def GetBlockPosition(current_model,blockPrefix):
 	pos = 0
 	for block in c_model.keywordBlock.sieBlocks:
@@ -833,16 +835,28 @@ r_model.fieldOutputRequests['F-Output-1'].setValues(
 	)
 
 # Delete keywords node file and add keywords for importing imperfections
-amp_impf = l_tot/1000
+#amp_impf = l_tot/1000
 
+#r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
+#r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-2, '\n')
+#r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-3, '\n')			
+#r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-4, '\n')			
+#r_model.keywordBlock.insert(
+#	len(r_model.keywordBlock.sieBlocks)-19, 
+#	'*IMPERFECTION, FILE='+ str(current_model) +', STEP=1\n1, '+ str(float(amp_impf)) +'\n**'
+#	)
+
+# Delete keyword nodefile
 r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-2, '\n')
-r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-3, '\n')			
-r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-4, '\n')			
-r_model.keywordBlock.insert(
-	len(r_model.keywordBlock.sieBlocks)-19, 
-	'*IMPERFECTION, FILE='+ str(current_model) +', STEP=1\n1, '+ str(float(amp_impf)) +'\n**'
-	)
+r_model.keywordBlock.replace(GetBlockPosition(current_model,'*Output, field, variable=PRESELECT')+1, '\n')
+
+# Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
+amp_impf = l_tot/1000				
+r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
+r_model.keywordBlock.replace(GetBlockPosition(current_model, '*step')-1, 
+'\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
++ str(current_model) +',STEP=1\n1,'+ str(float(amp_impf)) +'\n\n**')
+
 
 # Create Job
 
