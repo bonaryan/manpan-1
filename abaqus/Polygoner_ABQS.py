@@ -58,7 +58,8 @@ current_fy = float(profiles_meta[i][j][k][l][3][0])
 current_l = float(profiles_meta[i][j][k][l][7][0])
 current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profiles[i][j][k][1][0]-profiles[i][j][k][1][2])**2)
 
-# Create model ----------------------------------------------------------------------------------------------------------------------
+# Buckling model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
 c_model = mdb.models[current_model]
 
@@ -284,8 +285,8 @@ gusset_part.PartitionFaceByShortestPath(
 
 # Material ----------------------------------------------------------------------------------------------------------------------
 
-c_model.Material(name='pure-elastic')
-c_model.materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
+c_model.Material(name='optim650')
+c_model.materials['optim650'].Elastic(table=((210000.0, 0.3), ))
 
 # Create sections ---------------------------------------------------------------------------------------------------------------
 
@@ -293,7 +294,7 @@ c_model.materials['pure-elastic'].Elastic(table=((210000.0, 0.3), ))
 c_model.HomogeneousShellSection(
 	idealization=NO_IDEALIZATION, 
 	integrationRule=SIMPSON,
-	material='pure-elastic',
+	material='optim650',
 	name='sector',
 	numIntPts=5,
 	poissonDefinition=DEFAULT,
@@ -310,7 +311,7 @@ c_model.HomogeneousShellSection(
 c_model.HomogeneousShellSection(
 	idealization=NO_IDEALIZATION, 
 	integrationRule=SIMPSON,
-	material='pure-elastic',
+	material='optim650',
 	name='gusset',
 	numIntPts=5,
 	poissonDefinition=DEFAULT,
@@ -770,16 +771,28 @@ c_job=mdb.Job(
 	waitMinutes=0
 	)
 
+# Define a method to get the block number of a specific string in the keywords
+
+def GetBlockPosition(current_model,blockPrefix):
+	pos = 0
+	for block in c_model.keywordBlock.sieBlocks:
+		if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
+			return pos
+		pos=pos+1
+	return -1
+
 # Edit the keywords to output translations on the output file
 c_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-c_model.keywordBlock.insert(len(c_model.keywordBlock.sieBlocks)-2, '\n*NODE FILE\nU')
+c_model.keywordBlock.insert(GetBlockPosition(current_model,'*End Step')-2, '\n*NODE FILE\nU')
 
 # Write the input file
 mdb.jobs[current_model].writeInput()
 
+# RIKS model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 riks_model = 'RIKS-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
 
-# copy model from buckling analysis
+# Copy model from buckling analysis
 r_model=mdb.Model(
 	name=riks_model,
 	objectToCopy=c_model
@@ -794,34 +807,45 @@ r_model.StaticRiksStep(
 	previous='Initial'
 	)
 
+# Change to plastic material, optim650
+r_model.materials['optim650'].Plastic(table=((788.1, 0.0), (
+    791.9, 0.0029), (798.5, 0.0087), (815.6, 0.0202), (849.5, 0.0411), (869.9, 
+    0.0555), (878.6, 0.063), (886.3, 0.0709), (906.9, 0.0939), (938.3, 
+    0.1279)))
+
 # Apply displacement
 r_model.boundaryConditions['fix-end2'].setValuesInStep(
     stepName='RIKS',
 	u3=-5.0
 	)
 
-#def GetKeywordPosition(modelName, blockPrefix, occurrence=1):
-#if blockPrefix == '':
-#return len(mdb.models[modelName].keywordBlock.sieBlocks)-1
-#pos = 0
-#foundCount = 0
-#for block in mdb.models[modelName].keywordBlock.sieBlocks:
-#if string.lower(block[0:len(blockPrefix)])==\
-#string.lower(blockPrefix):
-#foundCount = foundCount + 1
-#if foundCount >= occurrence:
-#return pos
-#pos=pos+1
-#return -1
-#
-#Use it like this (this example looks for the *Elastic keyword and adds
-#a *Density after this) :
-#
-#position = GetKeywordPosition( 'Model-1', '*Elastic')+1
-#mdb.models['Model-1'].keywordBlock.insert(position, """
-#*Density
-#8600.0
-#""")
+# Field and History output requests
+
+r_model.historyOutputRequests['H-Output-1'].setValues(
+	rebar=EXCLUDE,
+	region=r_model.rootAssembly.sets['RP-2-set'], 
+    sectionPoints=DEFAULT,
+	variables=('U3', 'UR1', 'UR2', 'RF1', 'RF2', 'RF3', 'RM3')
+	)
+
+r_model.fieldOutputRequests['F-Output-1'].setValues(
+    variables=('S', 'E', 'U')
+	)
+
+# Delete keywords node file and add keywords for importing imperfections
+amp_impf = l_tot/1000
+
+r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
+r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-2, '\n')
+r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-3, '\n')			
+r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-4, '\n')			
+r_model.keywordBlock.insert(
+	len(r_model.keywordBlock.sieBlocks)-19, 
+	'*IMPERFECTION, FILE='+ str(current_model) +', STEP=1\n1, '+ str(float(amp_impf)) +'\n**'
+	)
+
+# Create Job
+
 
 #*IMPERFECTION, FILE=current_model, STEP=1
 #1, current_t/10
