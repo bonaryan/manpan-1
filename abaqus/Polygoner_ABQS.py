@@ -48,10 +48,10 @@ l = 0
 
 # bolt spacing to diameter ratio (s/d)
 #b = int(sys.argv[-1])
-b = 4
+b = 6
 
 # Variables holding information of the current profile
-current_model = 'BCKL-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
+buckle_model = 'BCKL-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
 current_d = float(profiles_meta[i][j][k][l][0][0])
 current_t = float(profiles_meta[i][j][k][l][1][0])
 current_tg = float(profiles_meta[i][j][k][l][2][0])
@@ -61,8 +61,8 @@ current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profil
 
 # Buckling model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-mdb.Model(modelType=STANDARD_EXPLICIT, name=current_model)
-c_model = mdb.models[current_model]
+mdb.Model(modelType=STANDARD_EXPLICIT, name=buckle_model)
+c_model = mdb.models[buckle_model]
 
 
 # Delete initial model
@@ -659,10 +659,8 @@ c_assembly.Set(
 	)
 	
 c_assembly.Set(
-	edges=g2_instance.edges.findAt(((gp1[0], gp1[1], (current_l + 1.5*current_d)), ), )+\
-	g2_instance.edges.findAt(((gp2[0], gp2[1], (current_l + 1.5*current_d)), ), )+\
-	g2_instance.edges.findAt(((gp3[0], gp3[1], (current_l + 1.5*current_d)), ), ),
-	name='gusset-edgeface',
+	edges=g2_instance.edges.findAt(((0, 0, (current_l + 1.5*current_d)), ), ),
+	name='gusset-fin-interface',
 	)
 
 c_model.Coupling(
@@ -671,16 +669,11 @@ c_model.Coupling(
 	influenceRadius=WHOLE_SURFACE,
 	localCsys=None,
 	name='Mid-coupling', 
-	surface=c_assembly.sets['gusset-edgeface'],
+	surface=c_assembly.sets['gusset-fin-interface'],
 	u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
 	)
 	
 # Step -----------------------------------------------------------------------------------
-
-#load_step = c_model.StaticStep(
-#	name='Load', 
-#	previous='Initial'
-#	)
 
 c_model.BuckleStep(
 	maxIterations=300,
@@ -726,11 +719,6 @@ middle_BC=c_model.DisplacementBC(
 	u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
 	)
 
-# Modify the BC end-2 and apply a displacement
-
-#c_model.boundaryConditions['fix-end2'].setValuesInStep(
-#	stepName='RIKS',
-#	u3=-5.0)
 
 # Load -------------------------------------------------------------------------------
 
@@ -756,10 +744,10 @@ c_job=mdb.Job(
 	historyPrint=OFF, 
     memory=90,
 	memoryUnits=PERCENTAGE,
-	model=current_model,
+	model=buckle_model,
 	modelPrint=OFF, 
     multiprocessingMode=DEFAULT,
-	name=current_model,
+	name=buckle_model,
 	nodalOutputPrecision=SINGLE, 
     numCpus=1,
 	numGPUs=0,
@@ -775,7 +763,7 @@ c_job=mdb.Job(
 # Define a method to get the block number of a specific string in the keywords
 
 c_model.keywordBlock.synchVersions()
-def GetBlockPosition(current_model,blockPrefix):
+def GetBlockPosition(buckle_model,blockPrefix):
 	pos = 0
 	for block in c_model.keywordBlock.sieBlocks:
 		if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
@@ -785,10 +773,10 @@ def GetBlockPosition(current_model,blockPrefix):
 
 # Edit the keywords to output translations on the output file
 c_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-c_model.keywordBlock.insert(GetBlockPosition(current_model,'*End Step')-2, '\n*NODE FILE\nU')
+c_model.keywordBlock.insert(GetBlockPosition(buckle_model,'*End Step')-1, '*NODE FILE\nU')
 
 # Write the input file
-mdb.jobs[current_model].writeInput()
+mdb.jobs[buckle_model].writeInput()
 
 # RIKS model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -806,7 +794,8 @@ del r_model.steps['Buckling']
 # Create RIKS step
 r_model.StaticRiksStep(
 	name='RIKS',
-	previous='Initial'
+	previous='Initial',
+	maxLPF=1.0
 	)
 
 # Change to plastic material, optim650
@@ -818,7 +807,7 @@ r_model.materials['optim650'].Plastic(table=((788.1, 0.0), (
 # Apply displacement
 r_model.boundaryConditions['fix-end2'].setValuesInStep(
     stepName='RIKS',
-	u3=-5.0
+	u3=-50.0
 	)
 
 # Field and History output requests
@@ -834,42 +823,58 @@ r_model.fieldOutputRequests['F-Output-1'].setValues(
     variables=('S', 'E', 'U')
 	)
 
-# Delete keywords node file and add keywords for importing imperfections
-#amp_impf = l_tot/1000
+# Define a method to get the block number of a specific string in the keywords
 
-#r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-#r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-2, '\n')
-#r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-3, '\n')			
-#r_model.keywordBlock.replace(len(r_model.keywordBlock.sieBlocks)-4, '\n')			
-#r_model.keywordBlock.insert(
-#	len(r_model.keywordBlock.sieBlocks)-19, 
-#	'*IMPERFECTION, FILE='+ str(current_model) +', STEP=1\n1, '+ str(float(amp_impf)) +'\n**'
-#	)
+r_model.keywordBlock.synchVersions()
+def GetBlockPosition(riks_model,blockPrefix):
+	pos = 0
+	for block in r_model.keywordBlock.sieBlocks:
+		if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
+			return pos
+		pos=pos+1
+	return -1
 
 # Delete keyword nodefile
 r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-r_model.keywordBlock.replace(GetBlockPosition(current_model,'*Output, field, variable=PRESELECT')+1, '\n')
+r_model.keywordBlock.replace(GetBlockPosition(r_model,'*End Step')-1, '\n')
 
 # Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
 amp_impf = l_tot/1000				
 r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-r_model.keywordBlock.replace(GetBlockPosition(current_model, '*step')-1, 
+r_model.keywordBlock.replace(GetBlockPosition(r_model, '*step')-1, 
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
-+ str(current_model) +',STEP=1\n1,'+ str(float(amp_impf)) +'\n\n**')
-
++ str(buckle_model) +',STEP=1\n1,'+ str(float(amp_impf)) +'\n2,\n**')
 
 # Create Job
-
-
-#*IMPERFECTION, FILE=current_model, STEP=1
-#1, current_t/10
-#2, current_t/10
-#3, current_t/20
-#4, current_t/20
-#5, current_t/20
-#6, current_t/20
-
+mdb.Job(
+	atTime=None,
+	contactPrint=OFF,
+	description='',
+	echoPrint=OFF, 
+    explicitPrecision=SINGLE,
+	getMemoryFromAnalysis=True,
+	historyPrint=OFF, 
+    memory=90,
+	memoryUnits=PERCENTAGE,
+	model='RIKS-1-1-1-1',
+	modelPrint=OFF, 
+    multiprocessingMode=DEFAULT,
+	name='RIKS-1-1-1-1',
+	nodalOutputPrecision=SINGLE,
+	numCpus=1,
+	numGPUs=0,
+	queue=None,
+	resultsFormat=ODB,
+	scratch='', 
+    type=ANALYSIS,
+	userSubroutine='',
+	waitHours=0,
+	waitMinutes=0
+	)
+	
+# Write the input file
+mdb.jobs[riks_model].writeInput()
 
 # Save the model
-#mdb.saveAs(pathName=os.getcwd()+'\\'+current_model+'.cae')
+mdb.saveAs(pathName=os.getcwd()+'\\'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)+'.cae')
 
