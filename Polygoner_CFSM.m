@@ -31,13 +31,10 @@ n = 100;
 m_all = num2cell(ones(1, (n+1)));
 neigs = 10;
 
-% Loop executing CUFSM
-% for i = [1:matrix_size(1)];
-%     for j = [1:matrix_size(2)];
-%         for k = [1:matrix_size(3)];
-for i = [1:1];
-    for j = [1:3];
-        for k = [1:1];
+%Loop executing CUFSM
+for i = [1:matrix_size(1)];
+    for j = [1:matrix_size(2)];
+        for k = [1:matrix_size(3)];
             
             % Current profile xy
             c_prof1 = profiles{i, j, k}';
