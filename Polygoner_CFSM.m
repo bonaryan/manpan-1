@@ -16,13 +16,12 @@ curves = cell(matrix_size(1), matrix_size(2), matrix_size(3));
 shapes = cell(matrix_size(1), matrix_size(2), matrix_size(3));
 
 % Define constants
-E = 210000;
+E = 210000; %[MPa]
 v = 0.3;
 G = E/(2*(1+v));
 fy = 355;
 
 % Define conditions
-springs = 0;
 BC = 'S-S';
 
 % Number of sub-lengths for which the eigenvalues are calculated
@@ -94,6 +93,22 @@ for i = [1:matrix_size(1)];
             GBTcon.dist = ones(1,ndm);
             GBTcon.local = ones(1,nlm);
             GBTcon.other = ones(1,nom);
+            GBTcon.ospace = 1;
+            GBTcon.orth = 2;
+            GBTcon.couple = 1;
+            GBTcon.norm = 1;
+            
+            set(ed_global,'String',sprintf('%i ',GBTcon.glob'));
+            set(ed_dist,'String',sprintf('%i ',GBTcon.dist'));
+            set(ed_local,'String',sprintf('%i ',GBTcon.local'));
+            set(ed_other,'String',sprintf('%i ',GBTcon.other'));
+            set(toggleglobal,'Value',1)
+            set(toggledist,'Value',1)
+            set(togglelocal,'Value',1)
+            set(toggleother,'Value',1)
+            modeflag=[1 1 1 1];
+            
+            
 
 % for no cFSM, uncomment the following line
 % GBTcon = struct('glob', 0, 'dist', 0, 'local', 0 , 'other', 0, 'ospace', [1], 'couple', [1], 'orth', [2]);
@@ -112,15 +127,18 @@ for i = [1:matrix_size(1)];
             constraints = 0;
 
             % Springs
-            ku = 5e4; % !!!Check which DOF is which!!!
-            kw = 5e4;
-            kv = 5e4;
+            KK = 100e3;
+            ku = cos(pi/6)*KK; % !!!Check which DOF is which!!!
+            kw = sin(pi/6)*KK;
             springs = [2, 1,  ku, 0;
                 2, 2, kw, 0;
-                2, 3, kv, 0;
                 l_prof-1, 1, ku, 0;
-                l_prof-1, 2, kw, 0;
-                l_prof-1, 3, kv, 0];
+                l_prof-1, 2, kw, 0];
+            
+            % Save the input variables from this run to a file. This file can be loaded
+            % in CUFSM gui
+            save('loadfile.mat', 'prop', 'node', 'elem', 'lengths', 'springs', 'constraints', 'GBTcon', 'BC', 'm_all', 'neigs');
+
 
             % Run the FSM strip analysis
 %            [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
