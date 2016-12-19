@@ -1,4 +1,4 @@
-function [curves, shapes] = Polygoner_CFSM(profiles, meta)
+function [curves, shapes, clas] = Polygoner_CFSM(profiles, meta)
 % Function that is called for a giver 3D cell array with profile coordinate
 % data, executes CUFSM and returns the curves and shapes
 
@@ -14,6 +14,7 @@ matrix_size = size(profiles);
 % Initialise the curves and shapes cell arrays to host the results
 curves = cell(matrix_size(1), matrix_size(2), matrix_size(3));
 shapes = cell(matrix_size(1), matrix_size(2), matrix_size(3));
+clas = cell(matrix_size(1), matrix_size(2), matrix_size(3));
 
 % Define constants
 E = 210000; %[MPa]
@@ -31,9 +32,12 @@ m_all = num2cell(ones(1, (n+1)));
 neigs = 10;
 
 % Loop executing CUFSM
-for i = [1:matrix_size(1)];
-    for j = [1:matrix_size(2)];
-        for k = [1:matrix_size(3)];
+% for i = [1:matrix_size(1)];
+%     for j = [1:matrix_size(2)];
+%         for k = [1:matrix_size(3)];
+for i = [1:1];
+    for j = [1:3];
+        for k = [1:1];
             
             % Current profile xy
             c_prof1 = profiles{i, j, k}';
@@ -42,8 +46,8 @@ for i = [1:matrix_size(1)];
             t = meta{i, j, k}(2);
             
             % Current profile area and moment of inertia
-            A = meta{i, j, k}(5);
-            I = min([meta{i, j, k}(6), meta{i, j, k}(7)]);
+%             A = meta{i, j, k}(5);
+%             I = min([meta{i, j, k}(6), meta{i, j, k}(7)]);
 
             % Current profile lengths
             lengths = logspace(0, log10(meta{i, j, k}(8)), n);
@@ -83,47 +87,19 @@ for i = [1:matrix_size(1)];
             % Construct the 'prop' array
             prop = [100, E, E, v, v, G ];
             
-            % Define cFSM parameters (constrained FSM for separating the different
-            % buckling modes)
-            % Generate unit length base vectors and number of modes
-            [~ ,~ ,~ ,~ ,~ ,~ ,~ , ndm, nlm, ~] = base_properties(node,elem);
-            ngm = 4;
-            nom = 2*(length(node(:,1))-1);
-            GBTcon.glob = ones(1,ngm);
-            GBTcon.dist = ones(1,ndm);
-            GBTcon.local = ones(1,nlm);
-            GBTcon.other = ones(1,nom);
+            % Define the initial GBT parameters for the unconstrained (no
+            % cFSM) analysis.
+            GBTcon.glob = 0;
+            GBTcon.dist = 0;
+            GBTcon.local = 0;
+            GBTcon.other = 0;
             GBTcon.ospace = 1;
             GBTcon.orth = 2;
             GBTcon.couple = 1;
             GBTcon.norm = 1;
             
-            set(ed_global,'String',sprintf('%i ',GBTcon.glob'));
-            set(ed_dist,'String',sprintf('%i ',GBTcon.dist'));
-            set(ed_local,'String',sprintf('%i ',GBTcon.local'));
-            set(ed_other,'String',sprintf('%i ',GBTcon.other'));
-            set(toggleglobal,'Value',1)
-            set(toggledist,'Value',1)
-            set(togglelocal,'Value',1)
-            set(toggleother,'Value',1)
-            modeflag=[1 1 1 1];
-            
-            
 
-% for no cFSM, uncomment the following line
-% GBTcon = struct('glob', 0, 'dist', 0, 'local', 0 , 'other', 0, 'ospace', [1], 'couple', [1], 'orth', [2]);
-            
-            % Constructing general constraints, springs
-%             % Commented code: constraints between the DOFs of 3 sectors
-%             constraints = [l_prof+2 1 1.000 l_prof-1 1 0.000 0 0
-%                 l_prof+2 2 1.000 l_prof-1 2 0.000 0 0
-%                 l_prof+2 3 1.000 l_prof-1 3 0.000 0 0
-%                 2*l_prof+2 1 1.000 2*l_prof-1 1 0.000 0 0
-%                 2*l_prof+2 2 1.000 2*l_prof-1 2 0.000 0 0
-%                 2*l_prof+2 3 1.000 2*l_prof-1 3 0.000 0 0
-%                 2 1 1.000 3*l_prof-1 1 0.000 0 0
-%                 2 2 1.000 3*l_prof-1 2 0.000 0 0
-%                 2 3 1.000 3*l_prof-1 3 0.000 0 0];
+            %Constraints
             constraints = 0;
 
             % Springs
@@ -137,11 +113,27 @@ for i = [1:matrix_size(1)];
             
             % Save the input variables from this run to a file. This file can be loaded
             % in CUFSM gui
-            save('loadfile.mat', 'prop', 'node', 'elem', 'lengths', 'springs', 'constraints', 'GBTcon', 'BC', 'm_all', 'neigs');
+            %save('loadfile.mat', 'prop', 'node', 'elem', 'lengths', 'springs', 'constraints', 'GBTcon', 'BC', 'm_all', 'neigs');
 
 
             % Run the FSM strip analysis
-%            [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
+            [curves{i, j, k}, shapes{i, j, k}] =strip(prop, node, elem, lengths, springs, constraints, GBTcon, BC, m_all, neigs);
+
+            % Run the classification analysis
+            for l=1:length(lengths);
+                %generate base vectors with appropriate basis and norm
+                a=lengths(l);
+                m_a=m_all{l};
+                [b_v_l,ngm,ndm,nlm]=base_column(node,elem,prop,a,BC,m_a);
+                %orthonormal vectors
+                b_v=base_update(GBTcon.ospace,GBTcon.norm,b_v_l,a,m_a,node,elem,prop,ngm,ndm,nlm,BC,GBTcon.couple,GBTcon.orth);
+                %classification
+                ndof_m=4*length(node(:,1));
+                for mod=1:length(shapes{i, j, k}{l}(1,:))
+                    mode=shapes{i, j, k}{l}(:,mod);
+                    clas{i, j, k}{l}(mod,1:4)=mode_class(b_v,mode,ngm,ndm,nlm,m_a,ndof_m,GBTcon.couple);
+                end
+            end
         end
     end
 end
