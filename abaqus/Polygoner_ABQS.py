@@ -69,6 +69,7 @@ current_fy = float(profiles_meta[i][j][k][l][3][0])
 current_l = float(profiles_meta[i][j][k][l][7][0])
 current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profiles[i][j][k][1][0]-profiles[i][j][k][1][2])**2)
 area = profiles_meta[i][j][k][l][4][0]
+current_Iy = float(profiles_meta[i][j][k][l][5][0])
 
 # Buckling model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -297,8 +298,8 @@ gusset_part.PartitionFaceByShortestPath(
 
 # Material ----------------------------------------------------------------------------------------------------------------------
 
-c_model.Material(name='optim650')
-c_model.materials['optim650'].Elastic(table=((210000.0, 0.3), ))
+c_model.Material(name='optim355')
+c_model.materials['optim355'].Elastic(table=((210000.0, 0.3), ))
 
 # Create sections ---------------------------------------------------------------------------------------------------------------
 
@@ -306,7 +307,7 @@ c_model.materials['optim650'].Elastic(table=((210000.0, 0.3), ))
 c_model.HomogeneousShellSection(
 	idealization=NO_IDEALIZATION, 
 	integrationRule=SIMPSON,
-	material='optim650',
+	material='optim355',
 	name='sector',
 	numIntPts=5,
 	poissonDefinition=DEFAULT,
@@ -323,7 +324,7 @@ c_model.HomogeneousShellSection(
 c_model.HomogeneousShellSection(
 	idealization=NO_IDEALIZATION, 
 	integrationRule=SIMPSON,
-	material='optim650',
+	material='optim355',
 	name='gusset',
 	numIntPts=5,
 	poissonDefinition=DEFAULT,
@@ -778,21 +779,21 @@ c_model.keywordBlock.insert(GetBlockPosition(c_model,'*End Step')-1, '*NODE FILE
 # Write the input file
 mdb.jobs[buckle_model].writeInput()
 
-# RIKS model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# RIKS model, Only axial ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-riks_model = 'RIKS-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
+riks_model_N = 'RIKS-N-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
 
 # Copy model from buckling analysis
-r_model=mdb.Model(
-	name=riks_model,
+r_model_N=mdb.Model(
+	name=riks_model_N,
 	objectToCopy=c_model
 	)
 
 # Delete buckling step
-del r_model.steps['Buckling']
+del r_model_N.steps['Buckling']
 
 # Create RIKS step
-r_model.StaticRiksStep(
+r_model_N.StaticRiksStep(
 	name='RIKS',
 	previous='Initial',
 	nlgeom=ON,
@@ -800,63 +801,72 @@ r_model.StaticRiksStep(
 	initialArcInc=0.2
 	)
 
-# Change to plastic material, optim650
-r_model.materials['optim650'].Plastic(table=((788.1, 0.0), (
-    791.9, 0.0029), (798.5, 0.0087), (815.6, 0.0202), (849.5, 0.0411), (869.9, 
-    0.0555), (878.6, 0.063), (886.3, 0.0709), (906.9, 0.0939), (938.3, 
-    0.1279)))
+# Change to plastic material, optim355
+r_model_N.materials['optim355'].Plastic(table=((381.1, 0.0), (
+    391.2, 0.0053), (404.8, 0.0197), (418.0, 0.0228), (444.2, 0.0310), (499.8, 
+    0.0503), (539.1, 0.0764), (562.1, 0.1009), (584.6, 0.1221), (594.4, 
+    0.1394)))
 
 # Apply concentrated force
 N_pl_rd = 510*area
 
-r_model.ConcentratedForce(
+r_model_N.ConcentratedForce(
 	cf3=-N_pl_rd,
 	createStepName='RIKS',
 	distributionType=UNIFORM,
 	field='',
 	localCsys=None,
 	name='compression',
-	region=r_model.rootAssembly.sets['RP-2-set']
+	region=r_model_N.rootAssembly.sets['RP-2-set']
 	)
 
 # Field and History output requests
 
-r_model.historyOutputRequests.changeKey(
+r_model_N.historyOutputRequests.changeKey(
 	fromName='H-Output-1',
 	toName='load'
 	)
 	
-r_model.historyOutputRequests['load'].setValues(
+r_model_N.historyOutputRequests['load'].setValues(
 	rebar=EXCLUDE,
-	region=r_model.rootAssembly.sets['RP-1-set'], 
+	region=r_model_N.rootAssembly.sets['RP-1-set'], 
     sectionPoints=DEFAULT, variables=('RF3', )
 	)
 	
-r_model.HistoryOutputRequest(
+r_model_N.HistoryOutputRequest(
 	createStepName='RIKS',
 	name='disp',
 	rebar=EXCLUDE,
-	region=r_model.rootAssembly.sets['RP-2-set'],
+	region=r_model_N.rootAssembly.sets['RP-2-set'],
 	sectionPoints=DEFAULT,
 	variables=('U3', )
 	)
 
-r_model.fieldOutputRequests.changeKey(
+r_model_N.HistoryOutputRequest(
+	createStepName='RIKS',
+	name='moment',
+	rebar=EXCLUDE,
+	region=r_model_N.rootAssembly.sets['RP-Mid-set'],
+	sectionPoints=DEFAULT,
+	variables=('UR1', )
+	)
+
+r_model_N.fieldOutputRequests.changeKey(
 	fromName='F-Output-1', 
     toName='fields'
 	)
-r_model.fieldOutputRequests['fields'].setValues(
+r_model_N.fieldOutputRequests['fields'].setValues(
 	variables=('S', 'MISES', 'E', 'PEEQ', 'U')
 	)
 
 # Delete keyword nodefile
-r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-r_model.keywordBlock.replace(GetBlockPosition(r_model,'*End Step')-1, '\n')
+r_model_N.keywordBlock.synchVersions(storeNodesAndElements=False)
+r_model_N.keywordBlock.replace(GetBlockPosition(r_model_N,'*End Step')-1, '\n')
 
 # Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
 amp_impf = s/2000			
-#r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-r_model.keywordBlock.replace(GetBlockPosition(r_model, '*step')-1, 
+#r_model_N.keywordBlock.synchVersions(storeNodesAndElements=False)
+r_model_N.keywordBlock.replace(GetBlockPosition(r_model_N, '*step')-1, 
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
 + str(buckle_model) +',STEP=1\n1,'+ str(float(amp_impf)) +'\n2,'+ str(float(amp_impf)) +'\n3,'+ str(float(amp_impf)) +'\n4,'+ str(float(amp_impf)) +'\n**')
 
@@ -871,10 +881,10 @@ mdb.Job(
 	historyPrint=OFF, 
     memory=90,
 	memoryUnits=PERCENTAGE,
-	model='RIKS-1-1-1-1',
+	model='RIKS-N-1-1-1-1',
 	modelPrint=OFF, 
     multiprocessingMode=DEFAULT,
-	name='RIKS-1-1-1-1',
+	name='RIKS-N-1-1-1-1',
 	nodalOutputPrecision=SINGLE,
 	numCpus=1,
 	numGPUs=0,
@@ -888,8 +898,65 @@ mdb.Job(
 	)
 	
 # Write the input file
-mdb.jobs[riks_model].writeInput()
+mdb.jobs[riks_model_N].writeInput()
 
-# Save the model
+# RIKS model, Axial snd bending ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+riks_model_NM = 'RIKS-NM-'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)
+
+# Copy model from buckling analysis
+r_model_NM=mdb.Model(
+	name=riks_model_NM,
+	objectToCopy=r_model_N
+	)
+
+# Apply bending moment at the mid-connection
+# Calculate the magnitude of moment as 10% of moment resistance
+W = current_Iy/(current_d/2)
+M_resist = W*current_fy
+M = 0.1*M_resist
+
+r_model_NM.Moment(
+	cm1=-M,
+	createStepName='RIKS',
+	distributionType=UNIFORM,
+	field='',
+	localCsys=None,
+	name='moment',
+	region=c_assembly.sets['RP-Mid-set']
+	)
+
+# Create Job
+mdb.Job(
+	atTime=None,
+	contactPrint=OFF,
+	description='',
+	echoPrint=OFF, 
+    explicitPrecision=SINGLE,
+	getMemoryFromAnalysis=True,
+	historyPrint=OFF, 
+    memory=90,
+	memoryUnits=PERCENTAGE,
+	model='RIKS-NM-1-1-1-1',
+	modelPrint=OFF, 
+    multiprocessingMode=DEFAULT,
+	name='RIKS-NM-1-1-1-1',
+	nodalOutputPrecision=SINGLE,
+	numCpus=1,
+	numGPUs=0,
+	queue=None,
+	resultsFormat=ODB,
+	scratch='', 
+    type=ANALYSIS,
+	userSubroutine='',
+	waitHours=0,
+	waitMinutes=0
+	)
+	
+# Write the input file
+mdb.jobs[riks_model_NM].writeInput()
+
+
+# Save the model -------------------------------------------------------------------------------------------------------
 mdb.saveAs(pathName=os.getcwd()+'\\'+str(i+1)+'-'+str(j+1)+'-'+str(k+1)+'-'+str(l+1)+'.cae')
 
