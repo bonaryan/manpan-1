@@ -21,6 +21,16 @@ session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COOR
 # Import pickle to load the .pkl database
 import pickle
 
+# Define a method to get the block number of a specific string in the keywords
+
+def GetBlockPosition(model,blockPrefix):
+	pos = 0
+	for block in model.keywordBlock.sieBlocks:
+		if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
+			return pos
+		pos=pos+1
+	return -1
+
 # Open and read the database
 profiles_file = open("./profiles.pkl",'rb')
 profiles = pickle.load(profiles_file)
@@ -58,6 +68,7 @@ current_tg = float(profiles_meta[i][j][k][l][2][0])
 current_fy = float(profiles_meta[i][j][k][l][3][0])
 current_l = float(profiles_meta[i][j][k][l][7][0])
 current_llip = sqrt((profiles[i][j][k][0][0]-profiles[i][j][k][0][2])**2+(profiles[i][j][k][1][0]-profiles[i][j][k][1][2])**2)
+area = profiles_meta[i][j][k][l][4][0]
 
 # Buckling model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -678,7 +689,7 @@ c_model.Coupling(
 c_model.BuckleStep(
 	maxIterations=300,
 	name='Buckling',
-	numEigen=6,
+	numEigen=4,
 	previous='Initial',
 	vectors=10
 	)
@@ -760,20 +771,9 @@ c_job=mdb.Job(
 	waitMinutes=0
 	)
 
-# Define a method to get the block number of a specific string in the keywords
-
-c_model.keywordBlock.synchVersions()
-def GetBlockPosition(buckle_model,blockPrefix):
-	pos = 0
-	for block in c_model.keywordBlock.sieBlocks:
-		if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
-			return pos
-		pos=pos+1
-	return -1
-
 # Edit the keywords to output translations on the output file
 c_model.keywordBlock.synchVersions(storeNodesAndElements=False)
-c_model.keywordBlock.insert(GetBlockPosition(buckle_model,'*End Step')-1, '*NODE FILE\nU')
+c_model.keywordBlock.insert(GetBlockPosition(c_model,'*End Step')-1, '*NODE FILE\nU')
 
 # Write the input file
 mdb.jobs[buckle_model].writeInput()
@@ -795,7 +795,9 @@ del r_model.steps['Buckling']
 r_model.StaticRiksStep(
 	name='RIKS',
 	previous='Initial',
-	maxLPF=1.0
+	nlgeom=ON,
+	maxNumInc=30,
+	initialArcInc=0.2
 	)
 
 # Change to plastic material, optim650
@@ -804,46 +806,59 @@ r_model.materials['optim650'].Plastic(table=((788.1, 0.0), (
     0.0555), (878.6, 0.063), (886.3, 0.0709), (906.9, 0.0939), (938.3, 
     0.1279)))
 
-# Apply displacement
-r_model.boundaryConditions['fix-end2'].setValuesInStep(
-    stepName='RIKS',
-	u3=-50.0
+# Apply concentrated force
+N_pl_rd = 510*area
+
+r_model.ConcentratedForce(
+	cf3=-N_pl_rd,
+	createStepName='RIKS',
+	distributionType=UNIFORM,
+	field='',
+	localCsys=None,
+	name='compression',
+	region=r_model.rootAssembly.sets['RP-2-set']
 	)
 
 # Field and History output requests
 
-r_model.historyOutputRequests['H-Output-1'].setValues(
+r_model.historyOutputRequests.changeKey(
+	fromName='H-Output-1',
+	toName='load'
+	)
+	
+r_model.historyOutputRequests['load'].setValues(
 	rebar=EXCLUDE,
-	region=r_model.rootAssembly.sets['RP-2-set'], 
-    sectionPoints=DEFAULT,
-	variables=('U3', 'UR1', 'UR2', 'RF1', 'RF2', 'RF3', 'RM3')
+	region=r_model.rootAssembly.sets['RP-1-set'], 
+    sectionPoints=DEFAULT, variables=('RF3', )
+	)
+	
+r_model.HistoryOutputRequest(
+	createStepName='RIKS',
+	name='disp',
+	rebar=EXCLUDE,
+	region=r_model.rootAssembly.sets['RP-2-set'],
+	sectionPoints=DEFAULT,
+	variables=('U3', )
 	)
 
-r_model.fieldOutputRequests['F-Output-1'].setValues(
-    variables=('S', 'E', 'U')
+r_model.fieldOutputRequests.changeKey(
+	fromName='F-Output-1', 
+    toName='fields'
 	)
-
-# Define a method to get the block number of a specific string in the keywords
-
-r_model.keywordBlock.synchVersions()
-def GetBlockPosition(riks_model,blockPrefix):
-	pos = 0
-	for block in r_model.keywordBlock.sieBlocks:
-		if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
-			return pos
-		pos=pos+1
-	return -1
+r_model.fieldOutputRequests['fields'].setValues(
+	variables=('S', 'MISES', 'E', 'PEEQ', 'U')
+	)
 
 # Delete keyword nodefile
 r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
 r_model.keywordBlock.replace(GetBlockPosition(r_model,'*End Step')-1, '\n')
 
 # Change keywords to include initial imperfections file (filename was given wrong initially and corrected later)
-amp_impf = l_tot/1000				
-r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
+amp_impf = s/2000			
+#r_model.keywordBlock.synchVersions(storeNodesAndElements=False)
 r_model.keywordBlock.replace(GetBlockPosition(r_model, '*step')-1, 
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
-+ str(buckle_model) +',STEP=1\n1,'+ str(float(amp_impf)) +'\n2,\n**')
++ str(buckle_model) +',STEP=1\n1,'+ str(float(amp_impf)) +'\n2,'+ str(float(amp_impf)) +'\n3,'+ str(float(amp_impf)) +'\n4,'+ str(float(amp_impf)) +'\n**')
 
 # Create Job
 mdb.Job(
