@@ -1,9 +1,10 @@
-function [X, Y] = min_finder(curves)
+function [X, Y, classification] = min_finder(curves, clas)
 % Script extracting minimum values and their corresponding half-wavelength
 
 % Initialise array to store minimum values
 X = zeros(3, 4, 10);
 Y = zeros(3, 4, 10);
+classification = cell(size(clas));
 
 % Loops through the different profiles
 for i = 1:3;
@@ -20,6 +21,7 @@ for i = 1:3;
             curvex = cell(n_lengths, neigs);
             curvey = cell(n_lengths, neigs);
             
+            
             % Loop collecting the y values (load factor) of the first eigenmode
             % for the different lengths
             i_eig = 1;
@@ -31,8 +33,9 @@ for i = 1:3;
             % Find the minima
             [Y(i, j, k), ind] = min(curvey{i_eig});
             X(i, j, k) = curvex{i_eig}(ind);
+            
+            % Store the corresponding participation values
+            classification{i, j, k} = clas{i, j, k}{ind}(1, :);
         end;
     end;
 end;
-
-
