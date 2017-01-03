@@ -2,3 +2,15 @@
 *.m~
 *.asv
 *.pyc
+*.cae
+*.odb
+*.jnl
+*.inp
+*.com
+*.dat
+*.sim
+*.ipm
+*.log
+*.msg
+*.sta
+*.prt
