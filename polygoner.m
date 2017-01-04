@@ -10,7 +10,7 @@ function [profiles, meta] = polygoner(nrange, drange, slendrange, fy, rcoef, nbe
 % Example input
 % nrange = [6, 9, 12];
 % drange = [300:200:900];
-% slendrange = linspace(80, 140, 10);
+% slendrange = linspace(80, 180, 10);
 % lambda = [0.65, 1, 1.25];
 % 
 % fy = 355;
