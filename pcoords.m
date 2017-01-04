@@ -35,8 +35,8 @@ function [x_out, y_out, t, tg, l_lip] = pcoords(n, d, slend, fy, rcoef, nbend, l
 % Calculated characteristics
 R = d/2;
 epsilon = sqrt(fy/235);
-t = round(epsilon^2 * d / slend);
-tg = round(t_ratio*t);
+t = (epsilon^2 * d / slend);
+tg = (t_ratio*t);
 l_lip = l_ratio*d;
 
 %% Polygon sector
