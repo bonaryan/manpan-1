@@ -124,7 +124,7 @@ for i = 1:length(nrange);
             Class = max(Ep2(v,2)); 
             
             
-            % Length of the longest side
+            % Classification according to EC3 1-1
             max_side = max(sqrt(diff(node(:, 2)).^2+diff(node(:, 1)).^2))
             if max_side/t <= 42*epsilon
                 Class = 3;
