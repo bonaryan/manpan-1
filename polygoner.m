@@ -96,15 +96,16 @@ for i = 1:length(nrange);
             end
                         
             % Calculating cross-sectional class and effective area if needed:
+            epsilon=sqrt(235/fy); Ep2=zeros(nele,2); lambdap=zeros(nele,1); ro=zeros(nele,1);
             for v = 1:nele;
                 Ep = [Ao L tk];
-                epsilon=sqrt(235/fy); Ep2=zeros(nele,2); lambdap=zeros(nele,1); ro=zeros(nele,1); 
+                 
                 if Ep(v,1) == eps
                     Ep2(v,:)=[0 123];
                 else
                     %EC3-1-5 Part 4.4
                     lambdap(v)=(Ep(v,2)/Ep(v,3))/(28.4*epsilon*2);
-                    ro(v)=abs((lambdap(v)-0.055*4)/lambdap(v)^2);
+                    ro(v)=(lambdap(v)-0.055*4)/lambdap(v)^2;
                     if ro(v)>1
                         ro(v)=1;
                     end
