@@ -98,8 +98,7 @@ for i = 1:length(nrange);
             % Calculating cross-sectional class and effective area if needed:
             for v = 1:nele;
                 Ep = [Ao L tk];
-                ne = length(elem);
-                epsilon=sqrt(235/fy); Ep2=zeros(ne,2); lambdap=zeros(ne,1); ro=zeros(ne,1); 
+                epsilon=sqrt(235/fy); Ep2=zeros(nele,2); lambdap=zeros(nele,1); ro=zeros(nele,1); 
                 if Ep(v,1) == eps
                     Ep2(v,:)=[0 123];
                 else
