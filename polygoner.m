@@ -120,8 +120,8 @@ for i = 1:length(nrange);
                 end
             end
             % compute the effective cross section area
-            Aeff = sum(Ep2(v,1));
-            Class = max(Ep2(v,2)); 
+            Aeff = sum(Ep2(:,1))-3*(tg+t)*t;
+            Class = max(Ep2(:,2)); 
             
             
             % Classification according to EC3 1-1
