@@ -2,14 +2,14 @@ function [X, Y, classification] = min_finder(curves, clas)
 % Script extracting minimum values and their corresponding half-wavelength
 
 % Initialise array to store minimum values
-X = zeros(3, 4, 10);
-Y = zeros(3, 4, 10);
+X = zeros(3, 4, 9);
+Y = zeros(3, 4, 9);
 classification = cell(size(clas));
 
 % Loops through the different profiles
 for i = 1:3;
     for j = 1:4;
-        for k = 1:10;
+        for k = 1:9;
             
             % Total number lengths
             n_lengths = length(curves{i, j, k});

@@ -1,6 +1,6 @@
 % Plots of results 
 
-% Plotting of the load factor vs diameter, (:,:,1 to 10) gives 10 combinations (or 30 comb for (1 to 3,:,1 to 10))
+% Plotting of the load factor vs slenderness, (:,1 to 4,:) gives 4 combinations (or 12 comb for (1 to 3,1 to 4,:))
 
 figure ('name','Load factor vs diameter')
 
@@ -8,7 +8,7 @@ figure ('name','Load factor vs diameter')
 h=[300 500 700 900];
 
 % corresponding minimum load factor
-a= Y(1,:,1);
+a= Y(:,:,1);
 
 plot(h,a,'o');
 
@@ -23,31 +23,53 @@ a2= Y(1,2,1);
 a3= Y(1,3,1);
 a4= Y(1,4,1);
 
-percentage = ['lokal = ',num2str(ceil(classification{1,1,1}(1))),'dist = ',num2str(ceil(classification{1,1,1}(2))), 'global = ',num2str(ceil(classification{1,1,1}(3)))];
+percentage = ['  L',num2str(ceil(classification{1,1,1}(1))), ' D',num2str(ceil(classification{1,1,1}(2))), ' G',num2str(ceil(classification{1,1,1}(3)))];
 text(h1,a1,percentage,'HorizontalAlignment','left');
 
-percentage = ['lokal = ',num2str(ceil(classification{1,2,1}(1))), 'dist = ',num2str(ceil(classification{1,2,1}(2))), 'global = ',num2str(ceil(classification{1,2,1}(3)))];
+percentage = ['  L',num2str(ceil(classification{1,2,1}(1))), ' D',num2str(ceil(classification{1,2,1}(2))), ' G',num2str(ceil(classification{1,2,1}(3)))];
 text(h2,a2,percentage,'VerticalAlignment','bottom');
 
-percentage = ['lokal = ',num2str(ceil(classification{1,3,1}(1))), 'dist = ',num2str(ceil(classification{1,3,1}(2))), 'global = ',num2str(ceil(classification{1,3,1}(3)))];
+percentage = ['  L',num2str(ceil(classification{1,3,1}(1))), ' D',num2str(ceil(classification{1,3,1}(2))), ' G',num2str(ceil(classification{1,3,1}(3)))];
 text(h3,a3,percentage,'VerticalAlignment','bottom');
 
-percentage = ['lokal = ',num2str(ceil(classification{1,4,1}(1))), 'dist = ',num2str(ceil(classification{1,4,1}(2))), 'global = ',num2str(ceil(classification{1,4,1}(3)))];
+percentage = ['  L',num2str(ceil(classification{1,4,1}(1))), ' D',num2str(ceil(classification{1,4,1}(2))), ' G',num2str(ceil(classification{1,4,1}(3)))];
 text(h4,a4,percentage,'VerticalAlignment','bottom');
 
-
-% Plotting of the load factor vs slenderness, (:,1 to 4,:) gives 4 combinations (or 12 comb for (1 to 3,1 to 4,:))
+% Plotting of the load factor vs diameter, (:,:,1 to 9) gives 9 combinations (or 27 comb for (1 to 3,:,1 to 9)
 
 figure ('name','Load factor vs slenderness')
 
 % % slenderness range
-z= [10 70 80 90 100 110 120 130 140 150];
+z= [70 80 90 100 110 120 130 140 150];
 
 % % corresponding minimum load factor
-b= Y(1,1,:);
+q= Y(3,1,:);
 
-plot(z,squeeze(b),'o');
+plot(z,squeeze(q),'o');
+
+g1= [70];
+g2= [80];
+g3= [90];
+g4= [100];
+
+b1= Y(1,1,1);
+b2= Y(1,1,2);
+b3= Y(1,1,3);
+b4= Y(1,1,4);
 
 
-% Hur kan vi plotta kombinationen ovan samt ange tillhorande interaktion (classification varldet)
+% attempt to show the percentage
+
+
+percentage = ['  L',num2str(ceil(classification{1,1,1}(1))), ' D',num2str(ceil(classification{1,1,1}(2))), ' G',num2str(ceil(classification{1,1,1}(3)))];
+text(g1,b1,percentage,'HorizontalAlignment','right');
+
+percentage = ['  L',num2str(ceil(classification{1,1,2}(1))), ' D',num2str(ceil(classification{1,1,2}(2))), ' G',num2str(ceil(classification{1,1,2}(3)))];
+text(g2,b2,percentage,'HorizontalAlignment','left');
+
+percentage = ['  L',num2str(ceil(classification{1,1,3}(1))), ' D',num2str(ceil(classification{1,1,3}(2))), ' G',num2str(ceil(classification{1,1,3}(3)))];
+text(g3,b3,percentage,'HorizontalAlignment','right');
+
+percentage = ['  L',num2str(ceil(classification{1,1,4}(1))), ' D',num2str(ceil(classification{1,1,4}(2))), ' G',num2str(ceil(classification{1,1,4}(3)))];
+text(g4,b4,percentage,'HorizontalAlignment','left');
 
