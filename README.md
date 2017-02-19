@@ -2,69 +2,58 @@
 
 Script creating sectors of polygonal profiles.
 
-# pcoords.m
-
-Matlab function calculating the x, y coordinates of one sector of a semi-closed polygonal cross section. The parent cross section consists of 3 identical sectors (120 degrees each).
-
-[x, y] = pcoords(n, d, fy, rcoef, nbend, lext, tg, slend)
-
-Input:
-
-n		(integer)	Number of corners (entire polygon, only values 3*m)
-
-d		(double)	Polygon diameter
-
-slend	(double)	Slenderness
-
-fy		(double)	Yield strength
-
-rcoef	(double)	Bending radius to thickness ratio (r/t = rcoef)
-
-nbend	(integer)	Number of points along the bend
-
-lext	(double)	extension length
-
-tg		(double)	Thickness of the gusset plate
+# Use
+Just edit the input variables and execute the script in abaqus. The input variables are currently within the first 100 lines of the script Polygoner.py. 
 
 
-Output:
+## The input variables are as follows:
 
-x		(array)	x-coordinates
-y		(array)	y coordinates
+# Number of corners
+n = 6
 
-# polygoner.m
 
-Matlab function that executes pcoords and outputs a matrix of arrays of x, y coordinates of polygonal sectors for a given range of input values.
+# Diameter of prescribed circle in mm
+d = 1000.
 
-profile_matrix = polygoner([n], [d], [slend], fy, rcoef, nbend, lext, tg)
+# Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
+cs_slenderness = 120.
 
-Input:
+# Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
+mb_slenderness = 1.
 
-n		(array)		Number of corners (e.g. [6, 9, 12])
+# Radius if the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
+# It regards to the bends of the polygon. The arc radious of the lips' bends is half this value
+rcoef = 6.
 
-d		(array)		Polygon diameters. Initial:step:final (e.g. [300:50:500])
+# Number of elements along the arc length of the bended corners
+nbend = 3
 
-slend	(array)		Slenderness range. Initial:step:final (e.g. [80:1:500])
+# length of the lips given as a ratio to the prescribed circle diameter l=d*l_ratio
+l_ratio = 0.14
 
-fy		(double)	Yield strength
+# Thickness of the gusset plates given as a ratio to the profile thickness tgusset=t_ratio*t
+t_ratio = 1.2
 
-rcoef	(double)	Bending radius to thickness ratio (r/t = rcoef)
+# Yield strength in MPa. Used for epsilon, not for the modelling material properties
+fy = 355.
 
-nbend	(integer)	Number of points along the bend
+# Young's modulus
+E_young = 210000.
 
-lext	(double)	extension length
+# Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
+b = 1
 
-tg		(double)	Thickness of the gusset plate
+# Imperfection factor for overall bowing of the column u1=l/impamp
+flx_imp = 250
 
-Output:
+# Direction angle for the overall bowing, 0 is on global y axis in rads
+theta = pi/2
 
-profile_matrix	(3d cell array)		Cell array containing all the x-y arrays.
+# Imperfection factor for distortional imperfections u2=s/dist_imp
+dist_imp = 250
 
-# Polygoner_ABQS_out.m
+# Bolt diameter in mm
+M_bolt = 16
 
-Scripts that exports an abaqus journal file with shell models from the given x-y arrays.
-
-# Polygoner_CFSM_out.m
-
-Scripts that executes CUFSM for given x-y arrays.
-
+# Clearence from the washer to the edge of the lip and the start of the bending arc in mm
+clearence = 3
