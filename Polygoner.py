@@ -1161,7 +1161,7 @@ stc_job.submit()
 stc_job.waitForCompletion()
 
 # find the maximum displacement from the static analysis
-stc_odb = open_odb(IDstring+'-imp.odb')
+stc_odb = xtr.open_odb(IDstring+'-imp.odb')
 Umax = xtr.max_result(stc_odb, ['U', 'Magnitude'])
 
 # Calculate the imperfection amplitude based on max displacement
