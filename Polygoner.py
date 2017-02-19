@@ -17,6 +17,7 @@ from optimization import *
 from job import *
 from sketch import *
 from connectorBehavior import *
+from shutil import copyfile
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
 
@@ -83,6 +84,10 @@ IDstring = str(int(n))+'-'+str(int(d))+'-'+str(int(b))+'-'+str(int(cs_slendernes
 
 # Make a new subdirectory for the current session
 os.mkdir(IDstring)
+
+# Copy necessary files to the new directory
+
+copyfile('abq_toolset.py', '.\\'+IDstring+'\\abq_toolset.py')
 
 # Change the working directory
 os.chdir('.\\'+IDstring)
