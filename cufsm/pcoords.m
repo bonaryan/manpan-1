@@ -5,7 +5,7 @@ function [x_out, y_out, t, tg, l_lip] = pcoords(n, d, slend, fy, rcoef, nbend, l
 % to diameter ratio, gusset plate thickness to sector thickness ratio.
 % output: [x, y], sector thickness, gussetplate thickness
 
-%% Input (recomended values)
+% % Input (recomended values)
 % % Number of corners (entire polygon, only 3*m)
 % n = 9;
 % 
@@ -23,13 +23,13 @@ function [x_out, y_out, t, tg, l_lip] = pcoords(n, d, slend, fy, rcoef, nbend, l
 % nbend = 6;
 % 
 % % extension length to diameter ratio
-% l_ratio = 0.1;
+% l_ratio = 0.14;
 % 
 % % Thickness of the gusset plate to sector thickness ratio
 % t_ratio = 1.20;
-%
+% 
 % % Slenderness
-% slend = 90;
+% slend = 100;
 
 
 % Calculated characteristics
