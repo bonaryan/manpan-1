@@ -35,9 +35,10 @@ function [x_out, y_out, t, tg, l_lip] = pcoords(n, d, slend, fy, rcoef, nbend, l
 % Calculated characteristics
 R = d/2;
 epsilon = sqrt(fy/235);
-t = (epsilon^2 * d / slend);
+t = d / (epsilon^2 * slend);
 tg = (t_ratio*t);
-l_lip = l_ratio*d;
+%l_lip = l_ratio*d;
+l_lip = 37;
 
 %% Polygon sector
 % Angle corresponding to one edge of the polygon
@@ -77,7 +78,7 @@ end;
 
 %% Start-end extensions
 % Bending radius
-rs = rbend/5;
+rs = rbend/2;
 
 % First bend
 v1 = phi_mids(1)-pi/2;

@@ -66,11 +66,11 @@ for i = 1:length(nrange);
             
             % Construct the 'elem' array
             elem = [(1:l_prof-1)', (2:l_prof)', t*ones(l_prof-1', 1);
-                l_prof, l_prof+1, 0.1;
+                l_prof, l_prof+1, 0.01;
                 l_prof+(1:l_prof-1)', l_prof+(2:l_prof)', t*ones(l_prof-1', 1);
-                2*l_prof, 2*l_prof+1, 0.1;
+                2*l_prof, 2*l_prof+1, 0.01;
                 2*l_prof+(1:l_prof-1)', 2*l_prof+(2:l_prof)', t*ones(l_prof-1', 1);
-                3*l_prof, 1, 0.1];
+                3*l_prof, 1, 0.01];
             
             % Return cs properties using cutwp
             [A, ~, ~, Iyy, Izz] = cutwp_prop2(node, elem);
