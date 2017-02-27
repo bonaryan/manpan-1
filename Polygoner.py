@@ -34,6 +34,9 @@ session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COOR
 # Fetch the input variables from the file input.py
 n, d, cs_slenderness, mb_slenderness, rcoef, nbend, t_ratio, fy, E_young, b, flx_imp, theta_bow, dist_imp, M_bolt, clearence = polygon_input()
 
+# Max number of increments for the RIKS solver
+n_increments = 30
+
 # Model specific ID string. Used for save filename and for the jobnames
 IDstring = str(int(n))+'-'+str(int(d))+'-'+str(int(b))+'-'+str(int(cs_slenderness))+'-'+str(int(100*mb_slenderness))+'-'+str(int(fy))
 
@@ -806,7 +809,7 @@ stc_mdl.fieldOutputRequests['fields'].setValues(
     )
 
 
-# RIKS model, Only axial ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# RIKS model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 riks_model_name = 'RIKS'
 
@@ -824,7 +827,7 @@ riks_mdl.StaticRiksStep(
     name='RIKS',
     previous='Initial',
     nlgeom=ON,
-    maxNumInc=30,
+    maxNumInc=n_increments,
     extrapolation=PARABOLIC
     )
 
@@ -884,8 +887,8 @@ for i in assmbl_riks.allInstances.items():
         zi = i[1].nodes[j].coordinates[2]
         assmbl_riks.editNode(
             nodes=i[1].nodes[j],
-            offset1=(l_tot/flx_imp)*sin(2*pi*zi/l_tot)*cos(theta_bow),
-            offset2=(l_tot/flx_imp)*sin(2*pi*zi/l_tot)*sin(theta_bow)
+            offset1=(l_tot/(2*flx_imp))*sin(2*pi*zi/l_tot)*cos(theta_bow),
+            offset2=(l_tot/(2*flx_imp))*sin(2*pi*zi/l_tot)*sin(theta_bow)
             )
 
 
@@ -931,10 +934,10 @@ for i in assmbl_riks.allInstances.items():
 
 
 # Apply concentrated force
-N_pl_rd = 510*Area
+N_el_rd = fy*Area
 
 riks_mdl.ConcentratedForce(
-    cf3=-N_pl_rd,
+    cf3=-N_el_rd,
     createStepName='RIKS',
     distributionType=UNIFORM,
     field='',
@@ -1067,8 +1070,11 @@ riks_job=mdb.Job(
     waitMinutes=0
     )
 
+# Submit the riks job and wait for the results
+riks_job.submit()
+
 ## Save the model -------------------------------------------------------------------------------------------------------
-#mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
+mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
 
 # Return to parent directory
-#os.chdir('..')
+os.chdir('..')

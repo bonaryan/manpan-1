@@ -5,7 +5,7 @@ def polygon_input(*arg):
     # Number of corners
     n = 6
     
-    # Diameter of prescribed circle in mm
+    # Diameter of the circumscribed circlein mm
     d = 1000.
     
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
@@ -18,7 +18,7 @@ def polygon_input(*arg):
     # It regards to the bends of the polygon. The arc radious of the lips' bends is half this value
     rcoef = 6.
     
-    # Number of elements along the arc length of the bended corners
+    # Number of elements along the arc length of the bended corners (to be changed: the number of elements have to be according to the global seeding)
     nbend = 3
     
     # Thickness of the gusset plates given as a ratio to the profile thickness tgusset=t_ratio*t
@@ -31,16 +31,16 @@ def polygon_input(*arg):
     E_young = 210000.
     
     # Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
-    b = 1
+    b = 3
     
     # Imperfection factor for overall bowing of the column u1=l/impamp
-    flx_imp = 250
+    flx_imp = 100
     
     # Direction angle for the overall bowing, 0 is on global y axis in rads
     theta_bow = pi/2
     
     # Imperfection factor for distortional imperfections u2=s/dist_imp
-    dist_imp = 250
+    dist_imp = 50
     
     # Bolt diameter in mm
     M_bolt = 16
@@ -48,4 +48,7 @@ def polygon_input(*arg):
     # Clearence from the washer to the edge of the lip and the start of the bending arc in mm
     clearence = 3
 	
+	# Maximum number of increments for the RIKS solver
+	
     return n, d, cs_slenderness, mb_slenderness, rcoef, nbend, t_ratio, fy, E_young, b, flx_imp, theta_bow, dist_imp, M_bolt, clearence
+	

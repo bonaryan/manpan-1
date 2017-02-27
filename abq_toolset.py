@@ -13,18 +13,16 @@ import math
 import string
 
 
-def testrun(arg1):
-    arg1
-    return math.sqrt(arg1)
-    
 # mean value
 def mean(numbers):
     return float(sum(numbers)) / max(len(numbers), 1)
+
 
 # Calculate diameter of washer for a given bolt
 def bolt2washer(M_bolt):
     d_washer = math.ceil(1.5893*M_bolt+5.1071)
     return d_washer
+
 
 # definition of a method to search for a keyword position
 def GetBlockPosition(model,blockPrefix):
@@ -35,6 +33,7 @@ def GetBlockPosition(model,blockPrefix):
             return pos
         pos=pos+1
     return -1
+
 
 # A more sophisticated open odb function
 def open_odb(odbPath):
@@ -50,6 +49,7 @@ def open_odb(odbPath):
         odbPath = new_odbPath
     odb = odbAccess.openOdb(path=odbPath, readOnly=True)
     return odb
+
 
 # Look for tha max value in a field output of an odb
 def max_result(odb, result):
@@ -76,6 +76,7 @@ def max_result(odb, result):
                     raise ValueError('Field output does not have field %s' % (results_field,))
     return _max
 
+
 # Calculate cross sectional properties. Two inputs required:
 # A (2, n) 2d list with x,y values of nodes and a (3, m) 2d list for elements(first-node, second-node, thickness)
 def cs_prop(nodes, elem):
@@ -100,32 +101,9 @@ def cs_prop(nodes, elem):
     elif j == nele-1:
         section = 'open' #singly-branched
     else:
-        #connected
         section = 'open' #multi-branched
-        #disconnected
-        #in the future it would be good to handle multiple cross-sections in
-        #one model, etc., for now the code will bomb if more than a single
-        #section is used - due to inability to calculate section properties.
-        #section = 'arbitrary'; #arbitrary section unidentified
-    
-    # if the section is close re-order the element 
-    # The code is not translated to python, to be completed
-    # The code works if the elements are given in a sequential order
-    # In order to include randomly given elements, the sorting script needs to be writen
-    #if section=='close':
-    #    xnele = (nele-1)
-    #    for i in range(xnele)
-    #        en = elem
-    #        en[i][1] = 0
-    #        [m,n] = find(elem(i,2)==en(:,1:2))
-    #        if n==1
-    #            elem(i+1,:) = en(m,:)
-    #            elem(m,:) = en(i+1,:)
-    #        elseif n == 2
-    #            elem(i+1,:) = en(m,[2 1 3])
-    #            elem(m,:) = en(i+1,[2 1 3])
-    
-    # find the element properties
+
+    # Calculate the cs-properties
     tt = []
     xm = []
     ym = []
@@ -146,7 +124,7 @@ def cs_prop(nodes, elem):
         # compute the length of the element
         L = L + [math.sqrt(xd[i]**2+yd[i]**2)]
 
-    # compute the cross section area
+    # calculate cross sectional area
     A = sum([a*b for a,b in zip(L, tt)])
     # compute the centroid 
     xc = sum([a*b*c for a,b,c in zip(L,tt,xm)])/A
@@ -158,7 +136,7 @@ def cs_prop(nodes, elem):
     if abs(yc/math.sqrt(A)) < 1e-12:
         yc = 0
     
-    # compute the moment of inertia
+    # Calculate MOI
     Ix = sum([sum(a) for a in zip([a**2*b*c/12 for a,b,c in zip(yd,L,tt)], [(a-yc)**2*b*c for a,b,c in zip(ym,L,tt)])])
     Iy = sum([sum(a) for a in zip([a**2*b*c/12 for a,b,c in zip(xd,L,tt)], [(a-xc)**2*b*c for a,b,c in zip(xm,L,tt)])])
     Ixy = sum([sum(a) for a in zip([a*b*c*d/12 for a,b,c,d in zip(xd,yd,L,tt)], [(a-xc)*(b-yc)*c*d for a,b,c,d in zip(xm,ym,L,tt)])])
@@ -166,28 +144,29 @@ def cs_prop(nodes, elem):
     if abs(Ixy/A**2) < 1e-12:
         Ixy = 0
     
-    # compute the rotation angle for the principal axes
+    # Calculate angle of principal axes
     theta_principal = math.atan((-2*Ixy)/(Ix-Iy))/2
     
-    # transfer the section coordinates to the centroid principal coordinates
+    # Change to centroid principal coordinates
     coord12 = [[a-xc for a in nodes[0]],[a-yc for a in nodes[1]]]
     coord12 = np.array([[math.cos(theta_principal), math.sin(theta_principal)],[-math.sin(theta_principal), math.cos(theta_principal)]]).dot(nodes)
     
-    # find the element properties
+    # re-calculate cross sectional properties for the centroid 
     for i in range(nele):
         sn = elem[0][i]
         fn = elem[1][i]
-        # compute the coordinate of the mid point of the element
+        # calculate the coordinate of the mid point of the element
         xm = xm + [mean([coord12[0][sn], coord12[0][fn]])]
         ym = ym + [mean([coord12[1][sn], coord12[1][fn]])]
-        # compute the dimension of the element
+        # calculate the dimension of the element
         xd = xd + [(coord12[0][fn]-coord12[0][sn])]
         yd = yd + [(coord12[1][fn]-coord12[1][sn])]
     
-    # compute the principal moment of inertia
+    # calculate the principal moment of inertia
     I1 = sum([sum(a) for a in zip([a**2*b*c/12 for a,b,c in zip(yd,L,tt)], [(a-yc)**2*b*c for a,b,c in zip(ym,L,tt)])])
     I2 = sum([sum(a) for a in zip([a**2*b*c/12 for a,b,c in zip(xd,L,tt)], [(a-xc)**2*b*c for a,b,c in zip(xm,L,tt)])])
     return A, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal
+
 
 # Calculate xy of nodes for a given polygonal profile
 # Returns points for the entire profile (1st and 2nd returned values)
