@@ -21,53 +21,55 @@ from shutil import copyfile
 from input import polygon_input
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
-# definition of a method to search for a keyword position
-#def GetBlockPosition(model,blockPrefix):
-#    import string
-#    pos = 0
-#    for block in model.keywordBlock.sieBlocks:
-#        if string.lower(block[0:len(blockPrefix)])==string.lower(blockPrefix):
-#            return pos
-#        pos=pos+1
-#    return -1
-
 # Fetch the input variables from the file input.py
-n, d, cs_slenderness, mb_slenderness, rcoef, nbend, t_ratio, fy, E_young, b, flx_imp, theta_bow, dist_imp, M_bolt, clearence = polygon_input()
-
-# Max number of increments for the RIKS solver
-n_increments = 30
+parameters = polygon_input()
 
 # Model specific ID string. Used for save filename and for the jobnames
-IDstring = str(int(n))+'-'+str(int(d))+'-'+str(int(b))+'-'+str(int(cs_slenderness))+'-'+str(int(100*mb_slenderness))+'-'+str(int(fy))
+# the ID string has the following structure (example given for filename 6-1000-3-120-100-355-250-250):
+#
+# polygon number of sides | circumcircle diameter | bolt spacing | cs_slenderness | 100*flexural slenderness | fy      | bowing imperfection | distortional imperfection
+# 6 (hexagon)             | d = 1000 mm           | Sb = 3*d     | d/(t*e^2) =120 | lambda = 100             | 355 MPa | a = l/250           | a = Sb/250
+#
+IDstring = str(int(parameters.n_sides))+'-'+\
+           str(int(parameters.diameter))+'-'+\
+		   str(int(parameters.bolt_spacing))+'-'+\
+		   str(int(parameters.classification))+'-'+\
+		   str(int(100*parameters.slenderness))+'-'+\
+		   str(int(parameters.yield_stress))+'-'+\
+		   str(int(parameters.bow_imperfections))+'-'+\
+		   str(int(parameters.distortional_imperfections))
 
 # Make a new subdirectory for the current session
 os.mkdir(IDstring)
 
 # Copy necessary files to the new directory
 copyfile('abq_toolset.py', '.\\'+IDstring+'\\abq_toolset.py')
+copyfile('input.py', '.\\'+IDstring+'\\input.py')
+copyfile('Polygoner.py', '.\\'+IDstring+'\\Polygoner.py')
 
 # Change the working directory
 os.chdir('.\\'+IDstring)
 
 # Calculated model characteristics -----------------------------------------------------------------------------------------------------------
 # Profile radius
+d = parameters.diameter
 R = d/2
 
 # Epsilon value as given in EC3
-epsilon = sqrt(fy/235)
+epsilon = sqrt(parameters.yield_stress/235)
 
 # Thickness of the profile plate
 # calculated based on EC3-1-1 for a tube of the same diameter
-t = d /(epsilon**2 * cs_slenderness)
+t = d /(epsilon**2 * parameters.classification)
 
 # Thickness of the gusset plate
-tg = (t_ratio*t)
+tg = (parameters.gusset_thickness_ratio * t)
 
 # Diameter of the washer for the given bolt
-d_washer = xtr.bolt2washer(M_bolt)
+d_washer = xtr.bolt2washer(parameters.bolt_diameter)
 
 # Calculate lip length
-l_lip = d_washer+(2*clearence)
+l_lip = d_washer+(2*parameters.clearence)
 
 # Create a new model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -76,7 +78,13 @@ static_model_name = 'IMP'
 stc_mdl = mdb.Model(modelType=STANDARD_EXPLICIT, name=static_model_name)
 
 # Calculate cross section coordinates for one sector --------------------------------------------------------------------------------
-x_cs, y_cs, x_sector, y_sector = xtr.polygon_sector(n, R, t, tg, rcoef, nbend, l_lip)
+x_cs, y_cs, x_sector, y_sector = xtr.polygon_sector(parameters.n_sides,
+                                                    R,
+ 													t,
+													tg,
+													parameters.bending_arc_radius,
+													parameters.n_arc_elements,
+													l_lip)
 
 # Build the node and connectivity matrices
 # number of nodes
@@ -90,7 +98,7 @@ ends = [range(nnodes), range(1,nnodes)+[0], [t]*(nnodes/3-1)+[0.01]+[t]*(nnodes/
 Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
 
 # Calculate column length based on the requested member slenderness
-length = mb_slenderness*pi*sqrt(E_young*I2/(Area*fy))
+length = parameters.slenderness*pi*sqrt(parameters.Youngs_modulus * I2 / (Area*parameters.yield_stress))
 
 # Create Parts ----------------------------------------------------------------------------------------------------------------------
 
@@ -107,7 +115,7 @@ for n in range(len(x_sector)-1):
         )
 
 # -Extrude sector part
-l_tot = 2*length + 3*d
+l_tot = 2 * length + 3 * d
 sector_part = stc_mdl.Part(
     dimensionality=THREE_D,
     name='sector',
@@ -124,12 +132,21 @@ sector_part.BaseShellExtrude(
 bolts_w = l_lip/2
 
 # -Distances on the length
-s = b*d
+s = parameters.bolt_spacing * d
 (n0, s0) = divmod(length, s)
 s1 = (s0 + s)/2
 
-bolts_z1 = np.concatenate([[bolts_w], bolts_w + ((d - l_lip)/5) * np.linspace(1, 4, 4), [d - bolts_w]])
-bolts_z2 = np.concatenate([[d + s1], s1 + d + (s * np.linspace(1, n0-1, n0-1))])
+bolts_z1 = np.concatenate([
+                          [bolts_w],
+                          bolts_w + ((d - l_lip)/5) * np.linspace(1, 4, 4),
+                          [d - bolts_w]
+						  ])
+
+bolts_z2 = np.concatenate([
+                          [d + s1],
+						  s1 + d + (s * np.linspace(1, n0-1, n0-1))
+						  ])
+
 bolts_z3 = bolts_z1 + (length + d)
 bolts_z4 = bolts_z2 + (length + d)
 bolts_z5 = bolts_z3 + (length + d)
@@ -237,6 +254,7 @@ gusset_part=stc_mdl.Part(
     name='gusset',
     type=DEFORMABLE_BODY
     )
+
 gusset_part.BaseShellExtrude(
     depth=d,
     sketch=gusset_sketch
@@ -309,7 +327,7 @@ gusset_part.PartitionFaceByShortestPath(
 # Material ----------------------------------------------------------------------------------------------------------------------
 
 stc_mdl.Material(name='elastic')
-stc_mdl.materials['elastic'].Elastic(table=((E_young, 0.3), ))
+stc_mdl.materials['elastic'].Elastic(table=((parameters.Youngs_modulus, 0.3), ))
 
 # Create sections ---------------------------------------------------------------------------------------------------------------
 
@@ -497,7 +515,7 @@ sh32 = sh22.dot(Rmat)
 
 sh = ((sh11, sh12), (sh21, sh22), (sh31, sh32))
 
-# Create reference points for the bolt ridig body couplings
+# Create reference points for the bolt rigid body couplings
 
 # Create the necessary sets and the tie constraints for all the bolts
 
@@ -701,15 +719,6 @@ stc_mdl.StaticStep(
     previous='Initial')
 
 
-#stc_mdl.StaticRiksStep(
-#    name='RIKS',
-#    previous='Initial',
-#    nlgeom=ON,
-#    maxNumInc=10,
-#    initialArcInc=0.2
-#    )
-    
-    
 # Boundary Conditions --------------------------------------------------------------
 
 # BCs                    
@@ -748,9 +757,6 @@ middle_BC=stc_mdl.DisplacementBC(
 
 
 # Load -------------------------------------------------------------------------------
-# local imperfection amplitude
-l_flx_imp = 200
-u_dist = s/l_flx_imp
 
 # Start-end points of the 3 sectors
 ss11=np.array([x_sector[0], y_sector[0]])
@@ -827,7 +833,7 @@ riks_mdl.StaticRiksStep(
     name='RIKS',
     previous='Initial',
     nlgeom=ON,
-    maxNumInc=n_increments,
+    maxNumInc=parameters.max_RIKS_increments,
     extrapolation=PARABOLIC
     )
 
@@ -887,8 +893,8 @@ for i in assmbl_riks.allInstances.items():
         zi = i[1].nodes[j].coordinates[2]
         assmbl_riks.editNode(
             nodes=i[1].nodes[j],
-            offset1=(l_tot/(2*flx_imp))*sin(2*pi*zi/l_tot)*cos(theta_bow),
-            offset2=(l_tot/(2*flx_imp))*sin(2*pi*zi/l_tot)*sin(theta_bow)
+            offset1=(l_tot/(2*parameters.bow_imperfections))*sin(2*pi*zi/l_tot)*cos(parameters.imperfections_angle),
+            offset2=(l_tot/(2*parameters.bow_imperfections))*sin(2*pi*zi/l_tot)*sin(parameters.imperfections_angle)
             )
 
 
@@ -934,7 +940,7 @@ for i in assmbl_riks.allInstances.items():
 
 
 # Apply concentrated force
-N_el_rd = fy*Area
+N_el_rd = parameters.yield_stress*Area
 
 riks_mdl.ConcentratedForce(
     cf3=-N_el_rd,
@@ -1034,7 +1040,7 @@ stc_odb = xtr.open_odb(IDstring+'-imp.odb')
 Umax = xtr.max_result(stc_odb, ['U', 'Magnitude'])
 
 # Calculate the imperfection amplitude based on max displacement
-a_factor = s/(dist_imp*Umax)
+a_factor = s/(parameters.distortional_imperfections*Umax)
 
 # Edit the keywords for the compression riks model to include imperfections from the static analysis
 riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
