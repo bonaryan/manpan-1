@@ -26,13 +26,13 @@ def polygon_input(*arg):
     n = 6
     
     # Diameter of the circumscribed circlein mm
-    d = 800.
+    d = 400.
     
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
-    cs_slenderness = 100.
+    cs_slenderness = 120.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
-    mb_slenderness = 1
+    mb_slenderness = 1.3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
     
     # Radius if the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
     # It regards to the bends of the polygon. The arc radious of the lips' bends is half this value
@@ -60,7 +60,7 @@ def polygon_input(*arg):
     theta_bow = pi/2
     
     # Imperfection factor for distortional imperfections u2=s/dist_imp
-    dist_imp = 50
+    dist_imp = 250
     
     # Bolt diameter in mm
     M_bolt = 16
