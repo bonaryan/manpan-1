@@ -26,13 +26,13 @@ def polygon_input(*arg):
     n = 6
     
     # Diameter of the circumscribed circlein mm
-    d = 400.
+    d = 500.
     
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
-    cs_slenderness = 120.
+    cs_slenderness = 100.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
-    mb_slenderness = 1.3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+    mb_slenderness = 1
     
     # Radius if the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
     # It regards to the bends of the polygon. The arc radious of the lips' bends is half this value

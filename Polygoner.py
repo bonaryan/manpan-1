@@ -19,6 +19,7 @@ from sketch import *
 from connectorBehavior import *
 from shutil import copyfile
 from input import polygon_input
+import odbAccess
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
 # Fetch the input variables from the file input.py
@@ -60,6 +61,8 @@ epsilon = sqrt(parameters.yield_stress/235)
 
 # Thickness of the profile plate
 # calculated based on EC3-1-1 for a tube of the same diameter
+# Note: for S355 and profiles with more than 5 sides, class 4 tube limit requires thicker profile than the class 4 limit for internal plates.
+# Therefore, the thickness is calculated based on tube classification which will lead to thicker profiles.
 t = d /(epsilon**2 * parameters.classification)
 
 # Thickness of the gusset plate
@@ -91,6 +94,7 @@ x_cs, y_cs, x_sector, y_sector = xtr.polygon_sector(parameters.n_sides,
 nnodes = len(x_cs)
 
 # Gather nodes and elements
+# Three very thin elements are added to connect the lips and form a closed cs
 coord = [x_cs, y_cs]
 ends = [range(nnodes), range(1,nnodes)+[0], [t]*(nnodes/3-1)+[0.01]+[t]*(nnodes/3-1)+[0.01]+[t]*(nnodes/3-1)+[0.01]]
 
@@ -834,7 +838,9 @@ riks_mdl.StaticRiksStep(
     previous='Initial',
     nlgeom=ON,
     maxNumInc=parameters.max_RIKS_increments,
-    extrapolation=PARABOLIC
+    extrapolation=PARABOLIC,
+    initialArcInc=0.1,
+    minArcInc=1e-07
     )
 
 # Rename the material
@@ -850,25 +856,11 @@ riks_mdl.materials['optim355'].Plastic(
 
 # Change the section material name accordingly
 riks_mdl.sections['gusset'].setValues(
-    idealization=NO_IDEALIZATION, 
-    integrationRule=SIMPSON,
-    material='optim355',
-    numIntPts=5,
-    preIntegrate=OFF,
-    thickness=18.1277,
-    thicknessField='',
-    thicknessType=UNIFORM
+    material='optim355'
     )
 
 riks_mdl.sections['sector'].setValues(
-    idealization=NO_IDEALIZATION, 
-    integrationRule=SIMPSON,
     material='optim355',
-    numIntPts=5,
-    preIntegrate=OFF,
-    thickness=15.1064,
-    thicknessField='',
-    thicknessType=UNIFORM
     )
 
 # Overall buckling Imperfections
@@ -1035,9 +1027,10 @@ stc_job=mdb.Job(
 stc_job.submit() 
 stc_job.waitForCompletion()
 
-# find the maximum displacement from the static analysis
+# find the maximum displacement from the static analysis (open and close the IMP odb)
 stc_odb = xtr.open_odb(IDstring+'-imp.odb')
 Umax = xtr.max_result(stc_odb, ['U', 'Magnitude'])
+odbAccess.closeOdb(stc_odb)
 
 # Calculate the imperfection amplitude based on max displacement
 a_factor = s/(parameters.distortional_imperfections*Umax)
@@ -1077,10 +1070,10 @@ riks_job=mdb.Job(
     )
 
 ## Save the model -------------------------------------------------------------------------------------------------------
-mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
+#mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
 
 # Submit the riks job and wait for the results
-riks_job.submit()
+#riks_job.submit()
 
 # Return to parent directory
 os.chdir('..')

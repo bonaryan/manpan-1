@@ -78,7 +78,7 @@ def max_result(odb, result):
 
 
 # Calculate cross sectional properties. Two inputs required:
-# A (2, n) 2d list with x,y values of nodes and a (3, m) 2d list for elements(first-node, second-node, thickness)
+# A 2d (2, n) list with x,y values of nodes and a (3, m) 2d list for elements(first-node, second-node, thickness)
 def cs_prop(nodes, elem):
     # Calculate cross sectional properties
     #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
