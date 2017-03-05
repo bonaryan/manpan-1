@@ -1077,10 +1077,10 @@ riks_job=mdb.Job(
     )
 
 ## Save the model -------------------------------------------------------------------------------------------------------
-#mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
+mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
 
 # Submit the riks job and wait for the results
-#riks_job.submit()
+riks_job.submit()
 
 # Return to parent directory
 os.chdir('..')

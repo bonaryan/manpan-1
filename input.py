@@ -21,18 +21,32 @@ def polygon_input(*arg):
                                                        'max_RIKS_increments',
                                                        'elem_size'
                                                        ])
-    
-    # Number of corners
+    #--------------------------------------------------------------------------------------------------------------
+    # The first 8 input parameters in order define the filename
+	# Number of corners
     n = 6
     
     # Diameter of the circumscribed circlein mm
     d = 500.
     
+    # Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
+    b = 1
+    
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
     cs_slenderness = 120.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
-    mb_slenderness = 0.6
+    mb_slenderness = 0.4
+    
+    # Imperfection factor for overall bowing of the column u1=l/impamp
+    bow_imp = 250
+    
+    # Imperfection factor for distortional imperfections u2=s/dist_imp
+    dist_imp = 100
+	
+    #--------------------------------------------------------------------------------------------------------------
+	# The following parameters are not included in the filename.
+    # Different parent directory should be used to avoid matching filenames
     
     # Radius of the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
     # It regards to the bends of the polygon. The arc radious of the lips' bends is half this value
@@ -47,17 +61,8 @@ def polygon_input(*arg):
     # Young's modulus
     E_young = 210000.
     
-    # Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
-    b = 1
-    
-    # Imperfection factor for overall bowing of the column u1=l/impamp
-    bow_imp = 250
-    
     # Direction angle for the overall bowing, 0 is on global y axis in rads
     theta_bow = pi/2
-    
-    # Imperfection factor for distortional imperfections u2=s/dist_imp
-    dist_imp = 100
     
     # Bolt diameter in mm
     M_bolt = 16
