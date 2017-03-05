@@ -33,16 +33,19 @@ def polygon_input(*arg):
     b = 1
     
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
-    cs_slenderness = 120.
+    cs_slenderness = 110.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
     mb_slenderness = 0.4
+    
+    # Yield strength in MPa. Used for epsilon, not for the modelling material properties
+    fy = 355.
     
     # Imperfection factor for overall bowing of the column u1=l/impamp
     bow_imp = 250
     
     # Imperfection factor for distortional imperfections u2=s/dist_imp
-    dist_imp = 100
+    dist_imp = 300
 	
     #--------------------------------------------------------------------------------------------------------------
 	# The following parameters are not included in the filename.
@@ -54,9 +57,6 @@ def polygon_input(*arg):
     
     # Thickness of the gusset plates given as a ratio to the profile thickness tgusset=t_ratio*t
     t_ratio = 1.2
-    
-    # Yield strength in MPa. Used for epsilon, not for the modelling material properties
-    fy = 355.
     
     # Young's modulus
     E_young = 210000.

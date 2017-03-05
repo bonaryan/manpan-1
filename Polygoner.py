@@ -18,12 +18,13 @@ from job import *
 from sketch import *
 from connectorBehavior import *
 from shutil import copyfile
-from input import polygon_input
+import input
+input = reload(input)
 import odbAccess
 session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
 
 # Fetch the input variables from the file input.py
-parameters = polygon_input()
+parameters = input.polygon_input()
 
 # Model specific ID string. Used for save filename and for the jobnames
 # the ID string has the following structure (example given for filename 6-1000-3-120-100-355-250-250):
@@ -79,6 +80,10 @@ l_lip = d_washer+(2*parameters.clearence)
 static_model_name = 'IMP'
 
 stc_mdl = mdb.Model(modelType=STANDARD_EXPLICIT, name=static_model_name)
+
+# Delete initial model
+if mdb.models.has_key('Model-1'):
+    del mdb.models['Model-1']
 
 # Calculate cross section coordinates for one sector --------------------------------------------------------------------------------
 
@@ -998,8 +1003,6 @@ riks_mdl.fieldOutputRequests['fields'].setValues(
 stc_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
 stc_mdl.keywordBlock.insert(xtr.GetBlockPosition(stc_mdl,'*End Step')-1, '*NODE FILE\nU')
 
-# Delete initial model
-del mdb.models['Model-1']
 
 # Create and submit the jobs -------------------------------------------------------------------
 
