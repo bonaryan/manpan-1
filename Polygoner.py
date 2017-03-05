@@ -81,12 +81,18 @@ static_model_name = 'IMP'
 stc_mdl = mdb.Model(modelType=STANDARD_EXPLICIT, name=static_model_name)
 
 # Calculate cross section coordinates for one sector --------------------------------------------------------------------------------
+
+# Number of elements along the arc length of the bended corners (to be changed: the number of elements have to be according to the global seeding)
+r_bend=parameters.bending_arc_radius*t
+n_bend, null = divmod(pi*(1-2/parameters.n_sides)*r_bend, (parameters.elem_size/2))
+n_bend = int(n_bend)
+
 x_cs, y_cs, x_sector, y_sector = xtr.polygon_sector(parameters.n_sides,
                                                     R,
  													t,
 													tg,
-													parameters.bending_arc_radius,
-													parameters.n_arc_elements,
+													r_bend,
+													n_bend,
 													l_lip)
 
 # Build the node and connectivity matrices
@@ -840,7 +846,8 @@ riks_mdl.StaticRiksStep(
     maxNumInc=parameters.max_RIKS_increments,
     extrapolation=PARABOLIC,
     initialArcInc=0.1,
-    minArcInc=1e-07
+    minArcInc=1e-07,
+    totalArcLength=0.5
     )
 
 # Rename the material

@@ -145,7 +145,10 @@ def cs_prop(nodes, elem):
         Ixy = 0
     
     # Calculate angle of principal axes
-    theta_principal = math.atan((-2*Ixy)/(Ix-Iy))/2
+    if Ix == Iy:
+        theta_principal = math.pi/2
+    else:
+        theta_principal = math.atan((-2*Ixy)/(Ix-Iy))/2
     
     # Change to centroid principal coordinates
     coord12 = [[a-xc for a in nodes[0]],[a-yc for a in nodes[1]]]
@@ -171,7 +174,7 @@ def cs_prop(nodes, elem):
 # Calculate xy of nodes for a given polygonal profile
 # Returns points for the entire profile (1st and 2nd returned values)
 # and points for a single sector (3rd and 4th returned values)
-def polygon_sector(n, R, t, tg, rcoef, nbend, l_lip):
+def polygon_sector(n, R, t, tg, rbend, nbend, l_lip):
     # Angle corresponding to one face of the polygon
     theta = 2*math.pi/n;
     
@@ -183,8 +186,6 @@ def polygon_sector(n, R, t, tg, rcoef, nbend, l_lip):
     y = R*np.sin(phi);
     
     ## Bends
-    # Bending radius
-    rbend = rcoef*t
     
     # Distance between bending centre and corner
     lc = rbend/np.cos(theta/2)

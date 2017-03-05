@@ -9,7 +9,6 @@ def polygon_input(*arg):
                                                        'classification',
                                                        'slenderness',
                                                        'bending_arc_radius',
-                                                       'n_arc_elements',
                                                        'gusset_thickness_ratio',
                                                        'yield_stress',
                                                        'Youngs_modulus',
@@ -19,7 +18,8 @@ def polygon_input(*arg):
                                                        'distortional_imperfections',
                                                        'bolt_diameter',
                                                        'clearence',
-                                                       'max_RIKS_increments'
+                                                       'max_RIKS_increments',
+                                                       'elem_size'
                                                        ])
     
     # Number of corners
@@ -29,17 +29,14 @@ def polygon_input(*arg):
     d = 500.
     
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
-    cs_slenderness = 100.
+    cs_slenderness = 120.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
-    mb_slenderness = 1
+    mb_slenderness = 0.6
     
-    # Radius if the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
+    # Radius of the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
     # It regards to the bends of the polygon. The arc radious of the lips' bends is half this value
     rcoef = 6.
-    
-    # Number of elements along the arc length of the bended corners (to be changed: the number of elements have to be according to the global seeding)
-    nbend = 3
     
     # Thickness of the gusset plates given as a ratio to the profile thickness tgusset=t_ratio*t
     t_ratio = 1.2
@@ -60,7 +57,7 @@ def polygon_input(*arg):
     theta_bow = pi/2
     
     # Imperfection factor for distortional imperfections u2=s/dist_imp
-    dist_imp = 250
+    dist_imp = 100
     
     # Bolt diameter in mm
     M_bolt = 16
@@ -69,24 +66,27 @@ def polygon_input(*arg):
     clearence = 3
     
     # Maximum number of increments for the RIKS solver
-    max_inc = 30
+    max_inc = 100
+    
+    # Mesh seeding size
+    seed_size = d/15
     
     # Collect and return the input values in a named tuple
     
     return Parameters(n,
                       d,
-					  cs_slenderness,
-					  mb_slenderness,
-					  rcoef,
-					  nbend,
-					  t_ratio,
-					  fy,
-					  E_young,
-					  b,
-					  bow_imp,
-					  theta_bow,
-					  dist_imp,
-					  M_bolt,
-					  clearence,
-					  max_inc
-					  )
+                      cs_slenderness,
+                      mb_slenderness,
+                      rcoef,
+                      t_ratio,
+                      fy,
+                      E_young,
+                      b,
+                      bow_imp,
+                      theta_bow,
+                      dist_imp,
+                      M_bolt,
+                      clearence,
+                      max_inc,
+                      seed_size
+                      )
