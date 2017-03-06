@@ -32,11 +32,26 @@ parameters = input.polygon_input()
 # polygon number of sides | circumcircle diameter | bolt spacing | cs_slenderness | 100*flexural slenderness | fy      | bowing imperfection | distortional imperfection
 # 6 (hexagon)             | d = 1000 mm           | Sb = 3*d     | d/(t*e^2) =120 | lambda = 100             | 355 MPa | a = l/250           | a = Sb/250
 #
+if parameters.classification < 100:
+    class_string = '0' + str(int(parameters.classification))
+else:
+    class_string = str(int(parameters.classification))
+
+if parameters.classify_as == 'plate':
+    class_string = 'P' + class_string
+else:
+    class_string = 'T' + class_string
+
+if 100*parameters.slenderness < 100:
+    slend_string = '0' + str(int(100*parameters.slenderness))
+else:
+    slend_string = str(int(100*parameters.slenderness))
+
 IDstring = str(int(parameters.n_sides))+'-'+\
            str(int(parameters.diameter))+'-'+\
 		   str(int(parameters.bolt_spacing))+'-'+\
-		   str(int(parameters.classification))+'-'+\
-		   str(int(100*parameters.slenderness))+'-'+\
+		   class_string+'-'+\
+		   slend_string+'-'+\
 		   str(int(parameters.yield_stress))+'-'+\
 		   str(int(parameters.bow_imperfections))+'-'+\
 		   str(int(parameters.distortional_imperfections))
@@ -64,7 +79,11 @@ epsilon = sqrt(parameters.yield_stress/235)
 # calculated based on EC3-1-1 for a tube of the same diameter
 # Note: for S355 and profiles with more than 5 sides, class 4 tube limit requires thicker profile than the class 4 limit for internal plates.
 # Therefore, the thickness is calculated based on tube classification which will lead to thicker profiles.
-t = d /(epsilon**2 * parameters.classification)
+if parameters.classify_as == 'plate':
+    t = d * sin(pi/parameters.n_sides)/(epsilon * parameters.classification)
+else:
+    t = d /(epsilon**2 * parameters.classification)
+
 
 # Thickness of the gusset plate
 tg = (parameters.gusset_thickness_ratio * t)
@@ -130,7 +149,9 @@ for n in range(len(x_sector)-1):
         )
 
 # -Extrude sector part
-l_tot = 2 * length + 3 * d
+#l_tot = 2 * length + 3 * d
+l_tot = 2 * length + d
+
 sector_part = stc_mdl.Part(
     dimensionality=THREE_D,
     name='sector',
@@ -148,7 +169,7 @@ bolts_w = l_lip/2
 
 # -Distances on the length
 s = parameters.bolt_spacing * d
-(n0, s0) = divmod(length, s)
+(n0, s0) = divmod(length-d, s)
 s1 = (s0 + s)/2
 
 bolts_z1 = np.concatenate([
@@ -162,9 +183,9 @@ bolts_z2 = np.concatenate([
 						  s1 + d + (s * np.linspace(1, n0-1, n0-1))
 						  ])
 
-bolts_z3 = bolts_z1 + (length + d)
-bolts_z4 = bolts_z2 + (length + d)
-bolts_z5 = bolts_z3 + (length + d)
+bolts_z3 = bolts_z1 + (length )
+bolts_z4 = bolts_z2 + (length)
+bolts_z5 = bolts_z3 + (length)
 
 bolts_z = np.concatenate([bolts_z1, bolts_z2, bolts_z3, bolts_z4, bolts_z5])
 
@@ -487,10 +508,10 @@ g3_instance=assmbl.Instance(
 
 # --Translate them to the right position
 g2_instance.translate(
-    vector=(0.0, 0.0, (length + d))
+    vector=(0.0, 0.0, (length))
     )
 g3_instance.translate(
-    vector=(0.0, 0.0, 2*(length + d))
+    vector=(0.0, 0.0, 2*(length))
     )
 
 # Interactions ------------------------------------------------------------------------------------------------------------------
@@ -649,11 +670,11 @@ for oo in (range(3)):
 # Create reference points for BCs/loads.
 
 # -RPs for the faces at the two ends of the columns
-assmbl.ReferencePoint((0.0, 0.0, 0.0))
-assmbl.ReferencePoint((0.0, 0.0, (2*length + 3*d)))
+assmbl.ReferencePoint((0.0, 0.0, d/2))
+assmbl.ReferencePoint((0.0, 0.0, (2*length + d/2)))
 
 # - RP at the middle
-assmbl.ReferencePoint((0.0, 0.0, (length + 1.5*d)))
+assmbl.ReferencePoint((0.0, 0.0, (length + d/2)))
 
 
 # - End face couplings to reference points
@@ -661,7 +682,7 @@ assmbl.ReferencePoint((0.0, 0.0, (length + 1.5*d)))
 # End 1
 assmbl.Set(
     name='RP-1-set', 
-    referencePoints=(assmbl.referencePoints.findAt((0, 0, 0)), )
+    referencePoints=(assmbl.referencePoints.findAt((0, 0, d/2)), )
     )
 
 assmbl.Set(
@@ -671,6 +692,11 @@ assmbl.Set(
     s_instance[2].edges.getByBoundingBox(-d,-d,0,d,d,0),
     name='end1-face',
     )
+
+#assmbl.Set(
+#    edges=g1_instance.edges.findAt(((0, 0, d/2), ), ),
+#    name='end1-face',
+#    )
 
 stc_mdl.Coupling(
     controlPoint=assmbl.sets['RP-1-set'], 
@@ -686,17 +712,22 @@ stc_mdl.Coupling(
 
 assmbl.Set(
     name='RP-2-set',
-    referencePoints=(assmbl.referencePoints.findAt((0, 0, 2*(length+1.5*d))), )
+    referencePoints=(assmbl.referencePoints.findAt((0, 0, (2*length + d/2))), )
     )
 
 assmbl.Set(
-    edges=g3_instance.edges.getByBoundingBox(-d,-d,2*(length+1.5*d),d,d,2*(length+1.5*d))+\
-    s_instance[0].edges.getByBoundingBox(-d,-d,2*(length+1.5*d),d,d,2*(length+1.5*d))+\
-    s_instance[1].edges.getByBoundingBox(-d,-d,2*(length+1.5*d),d,d,2*(length+1.5*d))+\
-    s_instance[2].edges.getByBoundingBox(-d,-d,2*(length+1.5*d),d,d,2*(length+1.5*d)),
+    edges=g3_instance.edges.getByBoundingBox(-d,-d,(2*length+d),d,d,2*(2*length+d))+\
+    s_instance[0].edges.getByBoundingBox(-d,-d,(2*length+d),d,d,(2*length+d))+\
+    s_instance[1].edges.getByBoundingBox(-d,-d,(2*length+d),d,d,(2*length+d))+\
+    s_instance[2].edges.getByBoundingBox(-d,-d,(2*length+d),d,d,(2*length+d)),
     name='end2-face'
     )
-    
+
+#assmbl.Set(
+#    edges=g3_instance.edges.findAt(((0, 0, (2*length + d/2)), ), ),
+#    name='end2-face',
+#    )
+
 stc_mdl.Coupling(
     controlPoint=assmbl.sets['RP-2-set'], 
     couplingType=KINEMATIC, influenceRadius=WHOLE_SURFACE,
@@ -710,11 +741,11 @@ stc_mdl.Coupling(
 
 assmbl.Set(
     name='RP-Mid-set', 
-    referencePoints=(assmbl.referencePoints.findAt((0.0, 0.0, (length + 1.5*d))), )
+    referencePoints=(assmbl.referencePoints.findAt((0.0, 0.0, (length + d/2))), )
     )
     
 assmbl.Set(
-    edges=g2_instance.edges.findAt(((0, 0, (length + 1.5*d)), ), ),
+    edges=g2_instance.edges.findAt(((0, 0, (length + d/2)), ), ),
     name='gusset-fin-interface',
     )
 
@@ -744,7 +775,7 @@ end1_BC=stc_mdl.DisplacementBC(
     fieldName='', 
     localCsys=None, 
     name='fix-end1', 
-    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, 0)), )), 
+    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, d/2)), )), 
     u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=SET
     )
     
@@ -755,7 +786,7 @@ end2_BC=stc_mdl.DisplacementBC(
     fieldName='', 
     localCsys=None, 
     name='fix-end2', 
-    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, 2*(length+1.5*d))), )), 
+    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, (2*length+d/2))), )), 
     u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=SET
     )
 
@@ -766,7 +797,7 @@ middle_BC=stc_mdl.DisplacementBC(
     fieldName='', 
     localCsys=None, 
     name='fix-middle', 
-    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, length+1.5*d)), )), 
+    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, length+d/2)), )), 
     u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
     )
 
@@ -850,7 +881,7 @@ riks_mdl.StaticRiksStep(
     nlgeom=ON,
     maxNumInc=parameters.max_RIKS_increments,
     extrapolation=PARABOLIC,
-    initialArcInc=0.1,
+    initialArcInc=0.01,
     minArcInc=1e-07,
     totalArcLength=0.5
     )

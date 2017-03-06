@@ -19,11 +19,12 @@ def polygon_input(*arg):
                                                        'bolt_diameter',
                                                        'clearence',
                                                        'max_RIKS_increments',
-                                                       'elem_size'
+                                                       'elem_size',
+                                                       'classify_as'
                                                        ])
     #--------------------------------------------------------------------------------------------------------------
     # The first 8 input parameters in order define the filename
-	# Number of corners
+    # Number of corners
     n = 6
     
     # Diameter of the circumscribed circlein mm
@@ -32,11 +33,15 @@ def polygon_input(*arg):
     # Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
     b = 1
     
+    # Classification as tube or plates
+    #class_type = 'tube'
+    class_type = 'plate'
+    
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
-    cs_slenderness = 110.
+    cs_slenderness = 35.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
-    mb_slenderness = 0.4
+    mb_slenderness = 0.2
     
     # Yield strength in MPa. Used for epsilon, not for the modelling material properties
     fy = 355.
@@ -46,9 +51,9 @@ def polygon_input(*arg):
     
     # Imperfection factor for distortional imperfections u2=s/dist_imp
     dist_imp = 300
-	
+    
     #--------------------------------------------------------------------------------------------------------------
-	# The following parameters are not included in the filename.
+    # The following parameters are not included in the filename.
     # Different parent directory should be used to avoid matching filenames
     
     # Radius of the bended corners of the polygon given as a ratio to the thickness r=rcoef*t
@@ -56,7 +61,7 @@ def polygon_input(*arg):
     rcoef = 6.
     
     # Thickness of the gusset plates given as a ratio to the profile thickness tgusset=t_ratio*t
-    t_ratio = 1.2
+    t_ratio = 2
     
     # Young's modulus
     E_young = 210000.
@@ -93,5 +98,6 @@ def polygon_input(*arg):
                       M_bolt,
                       clearence,
                       max_inc,
-                      seed_size
+                      seed_size,
+                      class_type
                       )
