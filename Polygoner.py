@@ -899,17 +899,24 @@ riks_mdl.materials['optim355'].Plastic(
 
 # Change the section material name accordingly
 riks_mdl.sections['gusset'].setValues(
-    material='optim355'
+    material='optim355',
     )
 
 riks_mdl.sections['sector'].setValues(
     material='optim355',
     )
 
+# Create a set to act as a control point for the solver killer subroutine
+assmbl_riks=riks_mdl.rootAssembly
+
+assmbl_riks.Set(
+    name='RIKS_NODE', 
+    nodes=assmbl_riks.instances['gusset-3'].nodes.getByBoundingSphere((0, 0, 2 * length + d), parameters.elem_size * 0.1)
+	)
+
 # Overall buckling Imperfections
 
 # Make assmblly instances independent o parts
-assmbl_riks=riks_mdl.rootAssembly
 
 assmbl_riks.makeIndependent(instances=(
     assmbl_riks.instances['sector-1'], 
@@ -1082,6 +1089,7 @@ riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1,
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
 + IDstring+'-imp' +',STEP=1\n1,'+ str(a_factor)+'\n**')
 
+riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=\x94RIKS_NODE\x94\nU')
 
 # Riks model
 riks_job=mdb.Job(
@@ -1105,7 +1113,7 @@ riks_job=mdb.Job(
     resultsFormat=ODB,
     scratch='', 
     type=ANALYSIS,
-    userSubroutine='',
+#    userSubroutine='C:\\Users\\manpan\\Documents\\LTU\\Polygoner\\GN_Riks_killer.for',
     waitHours=0,
     waitMinutes=0
     )
