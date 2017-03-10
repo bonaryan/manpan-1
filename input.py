@@ -25,56 +25,40 @@ def polygon_input(*arg):
     #--------------------------------------------------------------------------------------------------------------
     # The first 8 input parameters in order define the filename
     # Number of corners
-    try:
-        n = sys.argv[-8]
-    except:
-        n = 6
+
+    n = 6
     
     # Diameter of the circumscribed circlein mm
-    try:
-        d = int(sys.argv[-7])
-    except:
-        d = 500.
+
+    d = 500.
     
     # Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
-    try:
-        b = int(sys.argv[-6])
-    except:
-        b = 1
+
+    b = 1
     
     # Classification as tube or plates
     #class_type = 'tube'
     class_type = 'plate'
     
     # Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
-    try:
-        cs_slenderness = int(sys.argv[-5])
-    except:
-        cs_slenderness = 60.
+
+    cs_slenderness = 60.
     
     # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
-    try:
-        mb_slenderness = int(sys.argv[-4])/10
-    except:
-        mb_slenderness = 0.2
+
+    mb_slenderness = 0.2
     
     # Yield strength in MPa. Used for epsilon, not for the modelling material properties
-    try:
-        fy = int(sys.argv[-3])
-    except:
-        fy = 355.
+
+    fy = 355.
     
     # Imperfection factor for overall bowing of the column u1=l/impamp
-    try:
-        bow_imp = int(sys.argv[-2])
-    except:
-        bow_imp = 250
+
+    bow_imp = 250
     
     # Imperfection factor for distortional imperfections u2=s/dist_imp
-    try:
-        dist_imp = int(sys.argv[-1])
-    except:
-        dist_imp = 300
+
+    dist_imp = 300
     
     #--------------------------------------------------------------------------------------------------------------
     # The following parameters are not included in the filename.

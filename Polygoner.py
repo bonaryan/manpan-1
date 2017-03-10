@@ -26,6 +26,59 @@ session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COOR
 # Fetch the input variables from the file input.py
 parameters = input.polygon_input()
 
+
+# Replace input parameters from the input file with parameters given on the command line
+
+try:
+    parameters = parameters._replace(n_sides = int(sys.argv[-8]))
+except:
+    pass
+
+# Diameter of the circumscribed circlein mm
+try:
+    parameters = parameters._replace(diameter = int(sys.argv[-7]))
+except:
+    pass
+
+# Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
+try:
+    parameters = parameters._replace(bolt_spacing = int(sys.argv[-6]))
+except:
+    pass
+
+# Cross-section slenderness defined by the prescribed circle lambda1=(d/(t^2*epsilon))
+try:
+    parameters = parameters._replace(classification = int(sys.argv[-5]))
+except:
+    pass
+
+# Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
+try:
+    parameters = parameters._replace(slenderness=sys.argv[-4]/100)
+except:
+    pass
+
+# Yield strength in MPa. Used for epsilon, not for the modelling material properties
+try:
+    parameters = parameters._replace(yield_stress = int(sys.argv[-3]))
+except:
+    pass
+
+# Imperfection factor for overall bowing of the column u1=l/impamp
+try:
+    parameters = parameters._replace(bow_imperfections = int(sys.argv[-2]))
+except:
+    pass
+
+# Imperfection factor for distortional imperfections u2=s/dist_imp
+try:
+    parameters = parameters._replace(distortional_imperfections = int(sys.argv[-1]))
+except:
+    pass
+
+
+
+
 # Model specific ID string. Used for save filename and for the jobnames
 # the ID string has the following structure (example given for filename 6-1000-3-120-100-355-250-250):
 #
@@ -1089,7 +1142,7 @@ riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1,
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
 + IDstring+'-imp' +',STEP=1\n1,'+ str(a_factor)+'\n**')
 
-riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=\x94RIKS_NODE\x94\nU')
+#riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=\x94RIKS_NODE\x94\nU')
 
 # Riks model
 riks_job=mdb.Job(
