@@ -126,7 +126,7 @@ d = parameters.diameter
 R = d/2
 
 # Epsilon value as given in EC3
-epsilon = sqrt(parameters.yield_stress/235)
+epsilon = sqrt(235./parameters.yield_stress)
 
 # Thickness of the profile plate
 # calculated based on EC3-1-1 for a tube of the same diameter
@@ -1142,7 +1142,7 @@ riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1,
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
 + IDstring+'-imp' +',STEP=1\n1,'+ str(a_factor)+'\n**')
 
-#riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=\x94RIKS_NODE\x94\nU')
+#riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
 
 # Riks model
 riks_job=mdb.Job(
