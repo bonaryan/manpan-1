@@ -155,6 +155,11 @@ else:
 
 # Calcilate classification number both as plate and tube
 p_classification = face_width / (cs_thickness * epsilon)
+if p_classification > 42:
+    p_class = 'Class 4'
+else:
+    p_class = 'Class 1/2/3'
+
 t_classification = d_circumscribed / (cs_thickness * epsilon ** 2)
 
 
@@ -240,8 +245,26 @@ a_imp_fact = 0.49
 phi_capital = (1 + a_imp_fact * (lambda_final - 0.2) + lambda_final ** 2) / 2
 chi_flex = 1 / (phi_capital + sqrt(phi_capital ** 2 - lambda_final ** 2))
 
+# Aeff is calculated assuming uniform compression on the sectors.
+# Not true when the load is applies on the gusset only.
+
+psi = 1
+if psi > 0:
+    kapa_sigma = 8.2 / (1.05 + psi)
+elif psi > -3 and psi < -1:
+    kapa_sigma = 5.98 * (1 - psi) ** 2*d_washer
+else:
+    kapa_sigma = 7.81 - 6.29 * psi + 9.78 * psi ** 2
+
+lambda_p = p_classification / (28.4 * sqrt(kapa_sigma))
+if lambda_p > 0.673 and p_classification > 42:
+    rho = (lambda_p - 0.055 * (3 + psi)) / lambda_p ** 2
+else:
+    rho = 1.
+
+
 # Buckling resistance
-N_b_rd = chi_flex * N_pl_rd
+N_b_rd = chi_flex * rho * N_pl_rd
 
 # Number of spaces between the inner bolts on the joint
 joint_spaces = parameters.joint_bolts - 1
@@ -270,12 +293,15 @@ out_file.write('Cross-sectional Area:...........................................
 out_file.write('Moment of inertia:....................................................... '+str(I2)+' [mm^4]\n')
 out_file.write('Yield strength:.......................................................... '+str(parameters.yield_stress)+' [MPa]\n')
 out_file.write('Cross-section classification (as plate):................................. '+str(p_classification)+'\n')
+out_file.write('    Which is:............................................................ '+p_class+' * Diameter \n')
 out_file.write('Cross-section classification (as tube):.................................. '+str(t_classification)+'\n')
 out_file.write('Critical load, N_cr:..................................................... '+str(N_cr/1000)+' [kN]\n')
 out_file.write('Plastic resistance, N_pl_rd:............................................. '+str(N_pl_rd/1000)+' [kN]\n')
 out_file.write('Buckling resistance, N_b_rd:............................................. '+str(N_b_rd/1000)+' [kN]\n')
-out_file.write('Member slenderness:...................................................... '+str(lambda_final)+'\n')
+out_file.write('Member slenderness, lambda:.............................................. '+str(lambda_final)+'\n')
 out_file.write('Flexural buckling reduction factor, chi:................................. '+str(chi_flex)+'\n')
+out_file.write('Plate slenderness, lambda_p:............................................. '+str(lambda_p)+'\n')
+out_file.write('Effective cross section, rho:............................................ '+str(rho)+'\n')
 out_file.write('Input target slenderness:................................................ '+str(parameters.slenderness)+'\n')
 out_file.write('\n-MODEL CHARACTERISTICS'+'\n')
 out_file.write('Flexural buckling bow imperfections:..................................... l/'+str(parameters.bow_imperfections)+'\n')
