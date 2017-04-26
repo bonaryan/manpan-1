@@ -66,7 +66,7 @@ except:
 
 # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
 try:
-    parameters = parameters._replace(slenderness=sys.argv[-4] / 100.)
+    parameters = parameters._replace(slenderness=int(sys.argv[-4]) / 100.)
 except:
     pass
 

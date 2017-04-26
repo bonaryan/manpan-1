@@ -1,0 +1,222 @@
+ABQcaeK.exe caused an EXCEPTION_ACCESS_VIOLATION in module python27.dll at 00000000DCE498B1, PyDict_SetItem()+0129 byte(s)
+0x00000000DCE498B1 python27.dll, PyDict_SetItem()+0129 byte(s)
+0x00000000DCE4BB3A python27.dll, PyDict_SetItemString()+0074 byte(s)
+0x00000000DD52F8C5 ABQSMAPybPyoModule.dll, pyo_Module::DefineConstant()+0229 byte(s)
+0x00000000CF9DA92E ABQSMAInkVwrKer.dll, ker_PyAbaBuiltIn::DefineConstants()+0062 byte(s)
+0x00000000CF9DA36B ABQSMAInkVwrKer.dll, ker_PyAbaBuiltIn::ker_PyAbaBuiltIn()+0171 byte(s)
+0x00000000CF9CCE31 ABQSMAInkVwrKer.dll, ker_KernelActor::Main()+0705 byte(s)
+0x00000000CF9DF4DD ABQSMAInkVwrKer.dll, ker_main()+1405 byte(s)
+0x000000003F2C1C3C ABQcaeK.exe
+0x000000003F2C154F ABQcaeK.exe
+0x000000003F2D6AEA ABQcaeK.exe, BasicLicenser::GetServersInUseFlag()+15690 byte(s)
+0x0000000076BE59CD kernel32.dll, BaseThreadInitThunk()+0013 byte(s)
+0x0000000076D1A561 ntdll.dll, RtlUserThreadStart()+0033 byte(s)
+
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQcaeK.exe:	3F2C0000 - 3F5CB000
+C:\windows\SYSTEM32\ntdll.dll:	76CF0000 - 76E9A000
+C:\windows\system32\kernel32.dll:	76BD0000 - 76CEF000
+C:\windows\system32\KERNELBASE.dll:	FCC90000 - FCCFA000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACkeCaeKerProcedures.dll:	D9E90000 - DA809000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACkeInputFileWriter.dll:	D9A40000 - D9E8B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACkeAttributesIntObj.dll:	D8BF0000 - D9A3E000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACkeAttributesNoRegionIntObj.dll:	D6C70000 - D7028000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAVmoVwrModKer.dll:	D5370000 - D5BDC000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAVmoVwrOopKer.dll:	D8920000 - D8BE1000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAPyqOdbApiModule.dll:	D6490000 - D66F4000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAPybPyoModule.dll:	DD510000 - DD59A000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\python27.dll:	DCDB0000 - DD179000
+C:\windows\system32\WINMM.dll:	FA390000 - FA3CB000
+C:\windows\system32\msvcrt.dll:	FE7A0000 - FE83F000
+C:\windows\system32\USER32.dll:	76AD0000 - 76BCA000
+C:\windows\system32\GDI32.dll:	FECC0000 - FED27000
+C:\windows\system32\LPK.dll:	FEA90000 - FEA9E000
+C:\windows\system32\USP10.dll:	FE9C0000 - FEA8A000
+C:\windows\system32\WS2_32.dll:	FE840000 - FE88D000
+C:\windows\system32\RPCRT4.dll:	FE890000 - FE9BD000
+C:\windows\system32\NSI.dll:	FCF90000 - FCF98000
+C:\windows\system32\SHELL32.dll:	FD6C0000 - FE44A000
+C:\windows\system32\SHLWAPI.dll:	FD180000 - FD1F1000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAUzlZlib.dll:	F5570000 - F5589000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasShared.dll:	DD9A0000 - DDC39000
+C:\windows\system32\PSAPI.DLL:	76EB0000 - 76EB7000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasCatia.dll:	F56A0000 - F56A7000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasCoreUtils.dll:	E1720000 - E1759000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasPrfTrkLib.dll:	FA590000 - FA597000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasMem.dll:	E5300000 - E5331000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\JS0GROUP.dll:	DCA10000 - DCDA9000
+C:\windows\system32\WSOCK32.dll:	E5400000 - E5409000
+C:\windows\system32\NETAPI32.dll:	FA890000 - FA8A6000
+C:\windows\system32\netutils.dll:	FBDB0000 - FBDBC000
+C:\windows\system32\srvcli.dll:	FC3D0000 - FC3F3000
+C:\windows\system32\wkscli.dll:	FA870000 - FA885000
+C:\windows\system32\ADVAPI32.dll:	FCEB0000 - FCF8B000
+C:\windows\SYSTEM32\sechost.dll:	FCD90000 - FCDAF000
+C:\windows\system32\ole32.dll:	FE560000 - FE763000
+C:\windows\system32\OLEAUT32.dll:	FCDD0000 - FCEAA000
+C:\windows\system32\MPR.dll:	F84B0000 - F84C8000
+C:\windows\system32\SHFOLDER.dll:	F55A0000 - F55A7000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATSysMultiThreading.dll:	E0AA0000 - E0AD5000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\MSVCR100.dll:	51A70000 - 51B42000
+C:\windows\system32\mfc100u.dll:	51500000 - 51A63000
+C:\windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_5.82.7601.18201_none_a4d3b9377117c3df\COMCTL32.dll:	F2E60000 - F2F00000
+C:\windows\system32\MSIMG32.dll:	F9F80000 - F9F87000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATSysAllocator.dll:	F5590000 - F55A0000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATSysTS.dll:	E0210000 - E02C2000
+C:\windows\system32\imagehlp.dll:	FCDB0000 - FCDC9000
+C:\windows\system32\Secur32.dll:	FC500000 - FC50B000
+C:\windows\system32\SSPICLI.DLL:	FC790000 - FC7B5000
+C:\windows\system32\IPHLPAPI.DLL:	F9D10000 - F9D37000
+C:\windows\system32\WINNSI.DLL:	F9D00000 - F9D0B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\JS0BASEILB.dll:	DD870000 - DD996000
+C:\windows\system32\WININET.dll:	FD200000 - FD521000
+C:\windows\system32\api-ms-win-downlevel-user32-l1-1-0.dll:	FCA90000 - FCA94000
+C:\windows\system32\api-ms-win-downlevel-shlwapi-l1-1-0.dll:	FCD00000 - FCD04000
+C:\windows\system32\api-ms-win-downlevel-version-l1-1-0.dll:	FCD80000 - FCD84000
+C:\windows\system32\version.DLL:	FBA40000 - FBA4C000
+C:\windows\system32\api-ms-win-downlevel-normaliz-l1-1-0.dll:	FCC60000 - FCC63000
+C:\windows\system32\normaliz.DLL:	76EC0000 - 76EC3000
+C:\windows\system32\iertutil.dll:	FED30000 - FEFF9000
+C:\windows\system32\api-ms-win-downlevel-advapi32-l1-1-0.dll:	FCC50000 - FCC55000
+C:\windows\system32\USERENV.dll:	FCD60000 - FCD7E000
+C:\windows\system32\profapi.dll:	FC9E0000 - FC9EF000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\DSYSysWMIDriver.dll:	F4B80000 - F4B87000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\MSVCP100.dll:	551A0000 - 55238000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\libmmd.dll:	10000000 - 10320000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasGenericsLib.dll:	E2CD0000 - E2D00000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAbuGeom.dll:	D5110000 - D536B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAbuBasicUtils.dll:	DD710000 - DD86E000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\libifcoremd.dll:	00D50000 - 00ECF000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAOdbApi.dll:	D4D10000 - D510C000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAOdbCore.dll:	D42F0000 - D4D0D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAOdbAttrEO.dll:	D3230000 - D42EF000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAOdbCoreGeom.dll:	DD400000 - DD501000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAShpCore.dll:	DC940000 - DCA0B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAspDiagExtractor.dll:	E1700000 - E1719000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMARomDiagEx.dll:	D67B0000 - D6937000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMARfmInterface.dll:	D7300000 - D746A000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASrvBasic.dll:	D6150000 - D6225000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAObjSimObjectsMod.dll:	DFEA0000 - DFEFF000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASglSimXmlFndLib.dll:	D30F0000 - D322E000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASglSharedLib.dll:	F41B0000 - F41C5000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASimInterface.dll:	D2400000 - D30F0000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASimManifestSubcomp.dll:	E0B30000 - E0B41000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASimContainers.dll:	E1DC0000 - E1DEA000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasXmlParser.dll:	DFF00000 - DFF26000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABasXmlDocument.dll:	F5510000 - F551D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASimBulkAPI.dll:	DFDF0000 - DFE07000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASimPoolManager.dll:	DFDC0000 - DFDEB000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAspSupport.dll:	D1D90000 - D23F5000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAspCommunications.dll:	DD6C0000 - DD706000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAMsgModules.dll:	DFD90000 - DFDB3000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\SMAFeaBackbone.dll:	DFE90000 - DFE9B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATSysCommunication.dll:	DF710000 - DF730000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAEliLicense.dll:	DFF30000 - DFF6A000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQDMP_Core.dll:	DD5A0000 - DD655000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\msmpi.dll:	513C0000 - 514F8000
+C:\windows\WinSxS\amd64_microsoft.vc80.crt_1fc8b3b9a1e18e3b_8.0.50727.6195_none_88e41e092fab0294\MSVCR80.dll:	6A650000 - 6A719000
+C:\windows\system32\MSWSOCK.dll:	FC160000 - FC1B5000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAMsgCommModules.dll:	E6160000 - E6184000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAFeoModules.dll:	DE850000 - DE8B3000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAMtxCoreModule.dll:	DD380000 - DD3F9000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAFsmShared.dll:	DC900000 - DC937000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMABlaModule.dll:	DF0D0000 - DF0FC000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\mkl_intel_thread.dll:	D1040000 - D1D8B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\mkl_core.dll:	CFFC0000 - D103C000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\libiomp5md.dll:	010D0000 - 011D3000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAElkCore.dll:	D7260000 - D7294000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAspSchemaSupport.dll:	CFBC0000 - CFFB7000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\libifportMD.dll:	01200000 - 0125D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInkVwrKer.dll:	CF910000 - CFBBA000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInkModelDatabase.dll:	CF7E0000 - CF902000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInkVwrScene.dll:	D6BC0000 - D6C6C000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInkGraphicsPrinting.dll:	CF6C0000 - CF7DB000
+C:\windows\system32\AVIFIL32.dll:	DF6F0000 - DF70F000
+C:\windows\system32\MSACM32.dll:	F9EE0000 - F9EF8000
+C:\windows\system32\MSVFW32.dll:	DC8D0000 - DC8F9000
+C:\windows\WinSxS\amd64_microsoft.windows.gdiplus_6595b64144ccf1df_1.1.7601.23688_none_145d575e8b8eb5b3\gdiplus.dll:	FB100000 - FB316000
+C:\windows\system32\GLU32.dll:	D7230000 - D725D000
+C:\windows\system32\OPENGL32.dll:	CF5A0000 - CF6BD000
+C:\windows\system32\DDRAW.dll:	E4100000 - E41F1000
+C:\windows\system32\DCIMAN32.dll:	E63D0000 - E63D8000
+C:\windows\system32\SETUPAPI.dll:	FCFA0000 - FD177000
+C:\windows\system32\CFGMGR32.dll:	FCAA0000 - FCAD6000
+C:\windows\system32\DEVOBJ.dll:	FCC70000 - FCC8A000
+C:\windows\system32\dwmapi.dll:	FAF80000 - FAF98000
+C:\windows\system32\WINSPOOL.DRV:	F84D0000 - F8541000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrSesCom.dll:	CF4D0000 - CF593000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrFontServer.dll:	CF390000 - CF4C6000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAFoxFoxAPI.dll:	CF1A0000 - CF38A000
+C:\windows\system32\IMM32.dll:	FE770000 - FE79E000
+C:\windows\system32\MSCTF.dll:	FE450000 - FE559000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMARasRaster.dll:	D6360000 - D63C1000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAFoxFoxGL.dll:	F2580000 - F258E000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInkVwrDbm.dll:	D7190000 - D71CD000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrCmd.dll:	CF130000 - CF19A000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrIPC.dll:	D7160000 - D7182000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrPyUtils.dll:	D8420000 - D843F000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAPybCaePrefs.dll:	D6460000 - D6481000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrMduCom.dll:	DE840000 - DE84D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbVwrCom.dll:	CF0C0000 - CF130000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAInbFoxAbqCom.dll:	D6320000 - D635B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAVcoVwrModCom.dll:	CF010000 - CF0BE000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAVmoVwrAnmKer.dll:	D6100000 - D614E000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAPltCore.dll:	CEFC0000 - CF00D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACmaCaeModKerLow.dll:	CE9C0000 - CEFBA000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAStiCAE_StableTime.dll:	CE940000 - CE9B6000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACgaCaeModKerGeomLow.dll:	CE310000 - CE940000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACmiCaeModule.dll:	CDAF0000 - CE306000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATCDSPlug2DItf.dll:	CDAB0000 - CDAE7000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATCDSUtilities.dll:	CDA80000 - CDAAD000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATCDS.dll:	CCF90000 - CD4D6000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\CATWBx.dll:	CDA00000 - CDA71000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACgiCaeModuleGeom.dll:	CC940000 - CCF90000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\SMAExternal\SpaACIS.dll:	C9820000 - CC935000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMACcoAttributesGuiCommon.dll:	C9690000 - C9814000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMASubCoreSubcomp.dll:	CD990000 - CD9FE000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMADynModalComponent.dll:	C9620000 - C9686000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAMtkApiMod.dll:	C9500000 - C9620000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAAfcInputFileWriter.dll:	C92E0000 - C94FA000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAOdbDdbOdb.dll:	C8FA0000 - C92D8000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\ABQSMAPybIniModule.dll:	DE7B0000 - DE7B7000
+C:\windows\system32\COMDLG32.dll:	FEBA0000 - FEC37000
+C:\windows\system32\DNSAPI.dll:	FBFE0000 - FC03B000
+C:\windows\system32\nvinitx.dll:	FC8F0000 - FC934000
+C:\Program Files\NVIDIA Corporation\CoProcManager\detoured.dll:	0F000000 - 0F006000
+C:\Program Files\NVIDIA Corporation\CoProcManager\nvd3d9wrapx.dll:	F32E0000 - F3325000
+C:\Program Files\NVIDIA Corporation\CoProcManager\nvdxgiwrapx.dll:	F32A0000 - F32D7000
+C:\windows\system32\UxTheme.dll:	FB320000 - FB376000
+C:\windows\system32\MFC100ENU.DLL:	68180000 - 6818D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\core\multiarray.pyd:	C8EA0000 - C8F91000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\core\umath.pyd:	C8E40000 - C8E9A000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\core\_sort.pyd:	DD360000 - DD37B000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\core\_dotblas.pyd:	DD6B0000 - DD6BD000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\mkl_sequential.dll:	C89C0000 - C8E33000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\core\scalarmath.pyd:	CD960000 - CD98D000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\lib\_compiled_base.pyd:	D8910000 - D8919000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\linalg\lapack_lite.pyd:	D8640000 - D864F000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\fft\fftpack_lite.pyd:	D7210000 - D7223000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\lib\site-packages\numpy\random\mtrand.pyd:	C8950000 - C89B7000
+C:\windows\system32\CRYPTSP.dll:	FC1C0000 - FC1D8000
+C:\windows\system32\rsaenh.dll:	FBE80000 - FBEC7000
+C:\windows\system32\CRYPTBASE.dll:	FC820000 - FC82F000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\tools\SMApy\python2.7\DLLs\_ctypes.pyd:	1D1A0000 - 1D1BF000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\symbolicConstantsCache.pyd:	D77E0000 - D77E9000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\odbMaterial.pyd:	C87E0000 - C8950000
+C:\Program Files (x86)\SIMULIA\Abaqus\6.14-1\code\bin\odbSection.pyd:	C8760000 - C87DD000
+C:\windows\system32\dhcpcsvc.DLL:	F9910000 - F9928000
+C:\windows\system32\dhcpcsvc6.DLL:	F98D0000 - F98E1000
+C:\windows\system32\icmp.Dll:	5E530000 - 5E533000
+C:\windows\system32\NLAapi.dll:	F9EB0000 - F9EC5000
+C:\windows\system32\napinsp.dll:	F7A30000 - F7A45000
+C:\windows\system32\pnrpnsp.dll:	F7A10000 - F7A29000
+C:\windows\System32\winrnr.dll:	F7A00000 - F7A0B000
+C:\windows\System32\fwpuclnt.dll:	F9990000 - F99E3000
+C:\windows\system32\rasadhlp.dll:	F79F0000 - F79F8000
+C:\windows\System32\wshtcpip.dll:	FBB10000 - FBB17000
+C:\windows\system32\WINTRUST.dll:	FCD20000 - FCD5B000
+C:\windows\system32\CRYPT32.dll:	051E0000 - 0534D000
+C:\windows\system32\MSASN1.dll:	FC9D0000 - FC9DF000
+C:\windows\system32\nvoglv64.DLL:	68D60000 - 6A606000
+C:\windows\system32\ntmarta.dll:	FBA10000 - FBA3D000
+C:\windows\system32\WLDAP32.dll:	FEB40000 - FEB92000
+C:\windows\system32\dbghelp.dll:	F7FD0000 - F80F5000

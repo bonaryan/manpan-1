@@ -1,0 +1,30 @@
+# -*- coding: mbcs -*-
+#
+# Abaqus/CAE Release 6.14-1 replay file
+# Internal Version: 2014_06_05-00.11.02 134264
+# Run by manpan on Thu Apr 27 00:36:10 2017
+#
+
+# from driverUtils import executeOnCaeGraphicsStartup
+# executeOnCaeGraphicsStartup()
+#: Executing "onCaeGraphicsStartup()" in the site directory ...
+from abaqus import *
+from abaqusConstants import *
+session.Viewport(name='Viewport: 1', origin=(1.76428, 1.76432), width=259.701, 
+    height=175.021)
+session.viewports['Viewport: 1'].makeCurrent()
+from driverUtils import executeOnCaeStartup
+executeOnCaeStartup()
+execPyFile(
+    'C:/Program Files (x86)/SIMULIA/Abaqus/6.14-1/code/python2.7/lib/noGuiInteractive.pyc', 
+    __main__.__dict__)
+#* Exit code: 0
+#* File "SMAPyaModules\SMAPyaAbqPy.m\src\noGuiInteractive.py", line 26, in 
+#* <module>
+#* File "SMAPyaModules\SMAPyaAbqPy.m\src\editlineABQ.py", line 106, in interact
+#* File "SMAPython\SMAPytLibPy.m\src\code.py", line 247, in interact
+#* File "SMAPython\SMAPytLibPy.m\src\code.py", line 269, in push
+#* File "SMAPython\SMAPytLibPy.m\src\code.py", line 87, in runsource
+#* File "SMAPython\SMAPytLibPy.m\src\code.py", line 103, in runcode
+#* File "<stdin>", line 1, in <module>
+#* File "SMAPython\SMAPytLibPy.m\src\site.py", line 481, in __call__
