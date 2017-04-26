@@ -1,3 +1,12 @@
+### Comments on the present script
+# Updated 18/04/2017
+# This script describes the modelling of a polygonal semi-closed column.
+# The following files are required to be in the same directory:
+#  input.py			-> file that lists the input parameters for the model
+#  abq_toolset.py	-> additional python tools for abaqus
+#  GN_Riks_killer	-> Optional. Fortran code that kills the analysys under certain conditions. To neglect, comment the corresponding line on the riks job.
+# For the GN_Riks_killer to operate on windows, the extension must be .for or .obj. To run on linux, it must be .f. Change the filename and the job creation accordingly
+
 # # Import necessary libraries --------------------------------------------------------------------
 
 import numpy as np
@@ -28,6 +37,9 @@ parameters = input.polygon_input()
 
 
 # Replace input parameters from the input file with parameters given on the command line
+# example of shell arguments:
+# -- 9 500 1 42 80 381 200 200
+# gives: 9 sided polygon, 500 mm diameter of equal perimeter tube, 1*diameters bolt spacing, lambda = 0.8, fy = 381, flex_imp = l/200, loc_imp = b/200
 
 try:
     parameters = parameters._replace(n_sides = int(sys.argv[-8]))
@@ -42,7 +54,7 @@ except:
 
 # Bolt spacing given as a ratio to the prescribed circle diameter, b=s/d.
 try:
-    parameters = parameters._replace(bolt_spacing = int(sys.argv[-6]))
+    parameters = parameters._replace(bolt_spacing = int(sys.argv[-6]) / 10.)
 except:
     pass
 
@@ -54,7 +66,7 @@ except:
 
 # Member slenderness for overall column buckling lambda2= sqrt(A*fy/Ncr)
 try:
-    parameters = parameters._replace(slenderness=sys.argv[-4]/100)
+    parameters = parameters._replace(slenderness=sys.argv[-4] / 100.)
 except:
     pass
 
@@ -80,10 +92,10 @@ except:
 
 
 # Model specific ID string. Used for save filename and for the jobnames
-# the ID string has the following structure (example given for filename 6-1000-3-120-100-355-250-250):
+# the ID string has the following structure (example given for filename 6-1000-30-120-100-355-250-250):
 #
-# polygon number of sides | circumcircle diameter | bolt spacing | cs_slenderness | 100*flexural slenderness | fy      | bowing imperfection | distortional imperfection
-# 6 (hexagon)             | d = 1000 mm           | Sb = 3*d     | d/(t*e^2) =120 | lambda = 100             | 355 MPa | a = l/250           | a = Sb/250
+# polygon number of sides | circumcircle diameter | 10*bolt spacing | cs_slenderness | 100*flexural slenderness | fy      | bowing imperfection | distortional imperfection
+# 6 (hexagon)             | d = 1000 mm           | Sb = 3*d        | d/(t*e^2) =120 | lambda = 100             | 355 MPa | a = l/250           | a = Sb/250
 #
 if parameters.classification < 100:
     class_string = '0' + str(int(parameters.classification))
@@ -102,50 +114,58 @@ else:
 
 IDstring = str(int(parameters.n_sides))+'-'+\
            str(int(parameters.diameter))+'-'+\
-		   str(int(parameters.bolt_spacing))+'-'+\
-		   class_string+'-'+\
-		   slend_string+'-'+\
-		   str(int(parameters.yield_stress))+'-'+\
-		   str(int(parameters.bow_imperfections))+'-'+\
-		   str(int(parameters.distortional_imperfections))
+           str(int(parameters.bolt_spacing * 10))+'-'+\
+           class_string+'-'+\
+           slend_string+'-'+\
+           str(int(parameters.yield_stress))+'-'+\
+           str(int(parameters.bow_imperfections))+'-'+\
+           str(int(parameters.distortional_imperfections))
 
 # Make a new subdirectory for the current session
 os.mkdir(IDstring)
 
 # Copy necessary files to the new directory
-copyfile('abq_toolset.py', '.\\'+IDstring+'\\abq_toolset.py')
-copyfile('input.py', '.\\'+IDstring+'\\input.py')
-copyfile('Polygoner.py', '.\\'+IDstring+'\\Polygoner.py')
+copyfile('abq_toolset.py', './'+IDstring+'/abq_toolset.py')
+copyfile('input.py', './'+IDstring+'/input.py')
+copyfile('polygoner.py', './'+IDstring+'/polygoner.py')
+copyfile('GN_Riks_killer.f', './'+IDstring+'/GN_Riks_killer.f')
 
 # Change the working directory
-os.chdir('.\\'+IDstring)
+os.chdir('./'+IDstring)
 
 # Calculated model characteristics -----------------------------------------------------------------------------------------------------------
-# Profile radius
-d = parameters.diameter
-R = d/2
+# The diameter given as input corresponds to a circle with circumferencial length equal to the perimeter of the polygon
+# The polygon is created based on the circumscribed circle.
+# Diameter of the circumscribed circle:
+d_circumscribed = parameters.diameter
+R = d_circumscribed/2
+
+# Width of each side
+face_width = d_circumscribed * sin(pi/parameters.n_sides)
 
 # Epsilon value as given in EC3
 epsilon = sqrt(235./parameters.yield_stress)
 
 # Thickness of the profile plate
 # calculated based on EC3-1-1 for a tube of the same diameter
-# Note: for S355 and profiles with more than 5 sides, class 4 tube limit requires thicker profile than the class 4 limit for internal plates.
-# Therefore, the thickness is calculated based on tube classification which will lead to thicker profiles.
 if parameters.classify_as == 'plate':
-    t = d * sin(pi/parameters.n_sides)/(epsilon * parameters.classification)
+    cs_thickness = face_width / (epsilon * parameters.classification)
 else:
-    t = d /(epsilon**2 * parameters.classification)
+    cs_thickness = d_circumscribed / (epsilon**2 * parameters.classification)
+
+# Calcilate classification number both as plate and tube
+p_classification = face_width / (cs_thickness * epsilon)
+t_classification = d_circumscribed / (cs_thickness * epsilon ** 2)
 
 
 # Thickness of the gusset plate
-tg = (parameters.gusset_thickness_ratio * t)
+gusset_thickness = (parameters.gusset_thickness_ratio * cs_thickness)
 
 # Diameter of the washer for the given bolt
 d_washer = xtr.bolt2washer(parameters.bolt_diameter)
 
 # Calculate lip length
-l_lip = d_washer+(2*parameters.clearence)
+l_lip = d_washer + parameters.bend_clearence + parameters.edge_clearence
 
 # Create a new model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -153,24 +173,24 @@ static_model_name = 'IMP'
 
 stc_mdl = mdb.Model(modelType=STANDARD_EXPLICIT, name=static_model_name)
 
-# Delete initial model
-if mdb.models.has_key('Model-1'):
-    del mdb.models['Model-1']
+## Save the model -------------------------------------------------------------------------------------------------------
+mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
+
 
 # Calculate cross section coordinates for one sector --------------------------------------------------------------------------------
 
-# Number of elements along the arc length of the bended corners (to be changed: the number of elements have to be according to the global seeding)
-r_bend=parameters.bending_arc_radius*t
-n_bend, null = divmod(pi*(1-2/parameters.n_sides)*r_bend, (parameters.elem_size/2))
+# Number of elements along the arc length of the bended corners
+r_bend=parameters.bending_arc_radius*cs_thickness
+n_bend, null = divmod(pi*(1-2/parameters.n_sides)*r_bend, (parameters.elem_size))
 n_bend = int(n_bend)
 
 x_cs, y_cs, x_sector, y_sector = xtr.polygon_sector(parameters.n_sides,
                                                     R,
- 													t,
-													tg,
-													r_bend,
-													n_bend,
-													l_lip)
+                                                     cs_thickness,
+                                                    gusset_thickness,
+                                                    r_bend,
+                                                    n_bend,
+                                                    l_lip)
 
 # Build the node and connectivity matrices
 # number of nodes
@@ -179,20 +199,100 @@ nnodes = len(x_cs)
 # Gather nodes and elements
 # Three very thin elements are added to connect the lips and form a closed cs
 coord = [x_cs, y_cs]
-ends = [range(nnodes), range(1,nnodes)+[0], [t]*(nnodes/3-1)+[0.01]+[t]*(nnodes/3-1)+[0.01]+[t]*(nnodes/3-1)+[0.01]]
+ends = [range(nnodes), range(1,nnodes)+[0], [cs_thickness]*(nnodes/3-1)+[0.01]+[cs_thickness]*(nnodes/3-1)+[0.01]+[cs_thickness]*(nnodes/3-1)+[0.01]]
 
 # Calculate cross sectional properties
 Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
 
-# Calculate column length based on the requested member slenderness
-length = parameters.slenderness*pi*sqrt(parameters.Youngs_modulus * I2 / (Area*parameters.yield_stress))
+# Bending stiffness E*I
+E_I = parameters.Youngs_modulus * I2
+
+# Distance of the first bolt to the end of the gusset plate
+end_bolts_dist = parameters.first_bolt * cs_thickness
+
+# Spacing between two middle bolts
+bolts_dist = d_circumscribed * parameters.bolt_spacing
+
+# Calculate the minimum column length. This length will be increased to fit a certain number of bolts
+min_length = parameters.slenderness*pi*sqrt(parameters.Youngs_modulus * I2 / (Area * parameters.yield_stress))
+
+# The length of the joint region
+l_joint = d_circumscribed * parameters.joint_length
+
+# Calculate the number of bolts that can fit between the joints
+n_of_bolts = int(ceil((min_length - 2 * (l_joint - end_bolts_dist)) / bolts_dist) - 1)
+
+# Final length, increased to fit a number of bolts with specific bolt spacing
+l_tot = 2 * (l_joint + end_bolts_dist) + (n_of_bolts + 1) * bolts_dist
+
+# Design plastic resistance
+N_pl_rd = parameters.yield_stress * Area
+
+# Design buckliing resistance
+# Euler critical load
+N_cr = (pi ** 2 * E_I) / (l_tot ** 2)
+
+# Member slenderness
+lambda_final = sqrt(N_pl_rd / N_cr)
+
+# Reduction factor chi
+a_imp_fact = 0.49
+phi_capital = (1 + a_imp_fact * (lambda_final - 0.2) + lambda_final ** 2) / 2
+chi_flex = 1 / (phi_capital + sqrt(phi_capital ** 2 - lambda_final ** 2))
+
+# Buckling resistance
+N_b_rd = chi_flex * N_pl_rd
+
+# Number of spaces between the inner bolts on the joint
+joint_spaces = parameters.joint_bolts - 1
+
+# Create a text file with the model data
+out_file = open('./model_info.dat', 'w')
+out_file.write('\n-GEOMETRIC CHARACTERISTICS\n')
+out_file.write('Number of corners:....................................................... '+str(parameters.n_sides)+'\n')
+out_file.write('Diameter of equal perimeter:............................................. '+str(parameters.diameter)+' [mm]\n')
+out_file.write('Diameter of the circumscribed circle:.................................... '+str(d_circumscribed)+' [mm]\n')
+out_file.write('Total length:............................................................ '+str(l_tot/1000)+' [m]\n')
+out_file.write('Profile thickness:....................................................... '+str(cs_thickness)+' [mm]\n')
+out_file.write('Gusset thickness:........................................................ '+str(gusset_thickness)+' [mm]\n')
+out_file.write('Lip width:............................................................... '+str(l_lip)+' [mm]\n')
+out_file.write('Bending radius for the creases of the polygon (midline):................. '+str(r_bend)+' [mm]\n')
+out_file.write('Bolt spacing for inner bolts:............................................ '+str(bolts_dist)+' [mm]\n')
+out_file.write('    Which is:............................................................ '+str(parameters.bolt_spacing)+' * Diameter\n')
+out_file.write('Bolt spacing for bolt adjacent to joint:................................. '+str(end_bolts_dist)+' [mm]\n')
+out_file.write('    Which is:............................................................ '+str(parameters.first_bolt)+' * t\n')
+out_file.write('Total number of bolts between joints for each pair of lips:.............. '+str(n_of_bolts)+'\n')
+out_file.write('Length of the joint:..................................................... '+str(l_joint)+' [mm]\n')
+out_file.write('    Which is:............................................................ '+str(parameters.joint_length)+' * Diameter \n')
+out_file.write('Number of bolts for each fin of the gusset plate:........................ '+str(parameters.joint_bolts)+'\n')
+out_file.write('\n-STRUCTURAL CHARACTERISTICS'+'\n')
+out_file.write('Cross-sectional Area:.................................................... '+str(Area)+' [mm^2]\n')
+out_file.write('Moment of inertia:....................................................... '+str(I2)+' [mm^4]\n')
+out_file.write('Yield strength:.......................................................... '+str(parameters.yield_stress)+' [MPa]\n')
+out_file.write('Cross-section classification (as plate):................................. '+str(p_classification)+'\n')
+out_file.write('Cross-section classification (as tube):.................................. '+str(t_classification)+'\n')
+out_file.write('Critical load, N_cr:..................................................... '+str(N_cr/1000)+' [kN]\n')
+out_file.write('Plastic resistance, N_pl_rd:............................................. '+str(N_pl_rd/1000)+' [kN]\n')
+out_file.write('Buckling resistance, N_b_rd:............................................. '+str(N_b_rd/1000)+' [kN]\n')
+out_file.write('Member slenderness:...................................................... '+str(lambda_final)+'\n')
+out_file.write('Flexural buckling reduction factor, chi:................................. '+str(chi_flex)+'\n')
+out_file.write('Input target slenderness:................................................ '+str(parameters.slenderness)+'\n')
+out_file.write('\n-MODEL CHARACTERISTICS'+'\n')
+out_file.write('Flexural buckling bow imperfections:..................................... l/'+str(parameters.bow_imperfections)+'\n')
+out_file.write('Plate imperfections:..................................................... b/'+str(parameters.distortional_imperfections)+'\n')
+out_file.write('Target element size:..................................................... '+str(parameters.elem_size)+' [mm]\n')
+out_file.write('Load applied on: the entire cs ("True"), the gusset plate ("False"):..... '+str(bool(parameters.load_cross_section))+'\n')
+out_file.close()
 
 # Create Parts ----------------------------------------------------------------------------------------------------------------------
 
 # Sector
 
 # -Profile sketch for sector
-sector_sketch = stc_mdl.ConstrainedSketch(name='sector', sheetSize=1200.0)
+sector_sketch = stc_mdl.ConstrainedSketch(
+    name='sector',
+    sheetSize=1200.0
+    )
 
 # -Sketch sector lines
 for n in range(len(x_sector)-1):
@@ -202,14 +302,13 @@ for n in range(len(x_sector)-1):
         )
 
 # -Extrude sector part
-#l_tot = 2 * length + 3 * d
-l_tot = 2 * length + d
 
 sector_part = stc_mdl.Part(
     dimensionality=THREE_D,
     name='sector',
     type=DEFORMABLE_BODY
     )
+
 sector_part.BaseShellExtrude(
     depth=l_tot,
     sketch=sector_sketch
@@ -217,38 +316,33 @@ sector_part.BaseShellExtrude(
 
 # Calculate bolt positions
 
-# -Distance on the width
-bolts_w = l_lip/2
-
-# -Distances on the length
-s = parameters.bolt_spacing * d
-(n0, s0) = divmod(length-d, s)
-s1 = (s0 + s)/2
-
-bolts_z1 = np.concatenate([
-                          [bolts_w],
-                          bolts_w + ((d - l_lip)/5) * np.linspace(1, 4, 4),
-                          [d - bolts_w]
-						  ])
-
-bolts_z2 = np.concatenate([
-                          [d + s1],
-						  s1 + d + (s * np.linspace(1, n0-1, n0-1))
-						  ])
-
-bolts_z3 = bolts_z1 + (length )
-bolts_z4 = bolts_z2 + (length)
-bolts_z5 = bolts_z3 + (length)
-
-bolts_z = np.concatenate([bolts_z1, bolts_z2, bolts_z3, bolts_z4, bolts_z5])
-
 # Washer diameter
 d_washer = 30
 
+# -Distance on the width
+#bolts_w = l_lip/2
+bolts_w = d_washer / 2 + parameters.edge_clearence
+
+# -Distances on the length
+
+bolts_z1 = np.concatenate([
+                          [bolts_w],
+                          bolts_w + ((l_joint - 2 * bolts_w) / joint_spaces) * np.linspace(1, joint_spaces, joint_spaces)
+                          ])
+
+bolts_z2 = np.concatenate([
+                          [l_joint + end_bolts_dist],
+                          l_joint + end_bolts_dist + (bolts_dist * np.linspace(1, n_of_bolts+1, n_of_bolts+1))
+                          ])
+
+bolts_z3 = bolts_z1 + (l_tot - l_joint)
+
+bolts_z = np.concatenate([bolts_z1, bolts_z2, bolts_z3])
+
 # Initiate list to store datum planes
 datum_p=[]
-                    
-# Make holes
+
+# Make holes and datum planes
                     
 for o in range(int(bolts_z.shape[0])):
                             
@@ -277,11 +371,11 @@ for o in range(int(bolts_z.shape[0])):
     # Create datum planes to be used for partitioning the sector
     
     datum1=sector_part.DatumPlaneByPrincipalPlane(
-        offset=bolts_z[o]-bolts_w, 
+        offset=bolts_z[o]-bolts_w,
         principalPlane=XYPLANE
         )
     datum2=sector_part.DatumPlaneByPrincipalPlane(
-        offset=bolts_z[o]+bolts_w, 
+        offset=bolts_z[o]+bolts_w,
         principalPlane=XYPLANE
         )
     datum_p.append(datum1)
@@ -290,7 +384,7 @@ for o in range(int(bolts_z.shape[0])):
 # Partition the sector
 
 # -Number of datum planes
-n_dat = int(len(sector_part.datums))
+n_dat = len(datum_p)
 
 # cut all the faces using the datum planes
                     
@@ -345,7 +439,7 @@ gusset_part=stc_mdl.Part(
     )
 
 gusset_part.BaseShellExtrude(
-    depth=d,
+    depth=l_joint,
     sketch=gusset_sketch
     )
 
@@ -384,34 +478,88 @@ for o in range(int(bolts_z1.shape[0])):
         planeSide=SIDE1
         )
 
+# Sketch for the elliptical cut
+
+elliptic_sketch = stc_mdl.ConstrainedSketch(
+    name='elliptic_cut_sketch', 
+    sheetSize=l_joint,
+    transform=gusset_part.MakeSketchTransform(
+        sketchPlane=gusset_part.faces.findAt((0.0, -1, 0), ),
+        sketchPlaneSide=SIDE1, 
+        sketchUpEdge=gusset_part.edges.findAt((0.0, -1, 0), ),
+        sketchOrientation=RIGHT,
+        origin=(0.0, -gp2[1] / 2, l_joint / 2)
+        )
+    )
+
+gusset_part.projectReferencesOntoSketch(
+    filter=COPLANAR_EDGES,
+    sketch=elliptic_sketch
+    )
+
+elliptic_sketch.Spline(
+    points=(
+        (-l_joint / 4, -gp2[1] / 2 + gp2[1]),
+        (-l_joint / 4, -gp2[1] / 3 + gp2[1]),
+        (l_joint / 2, gp2[1] /2 + l_lip + gp2[1])
+        )
+    )
+
+elliptic_sketch.Line(
+    point1=(-l_joint / 4, -gp2[1] / 2 + gp2[1]),
+    point2=(l_joint / 2, -gp2[1] /2 + gp2[1])
+    )
+
+elliptic_sketch.Line(
+    point1=(l_joint / 2, -gp2[1] /2 + gp2[1]),
+    point2=(l_joint / 2, gp2[1] /2 + l_lip + gp2[1])
+    )
+
+elliptic_sketch.ConstructionLine(
+    angle=0.0,
+    point1=(l_joint / 2, -gp2[1] /2 + gp2[1])
+    )
+
+gusset_part.CutRevolve(
+    angle=360.0,
+    flipRevolveDirection=OFF,
+    sketch=elliptic_sketch,
+    sketchOrientation=RIGHT,
+    sketchPlane=gusset_part.faces.findAt((0.0, -1, 1), ),
+    sketchPlaneSide=SIDE1, 
+    sketchUpEdge=gusset_part.edges.findAt((0.0, -1, 0), )
+    )
+
 # Partition gusset
 
-gusset_part.DatumPointByCoordinate((gp1[0]-l_lip*cos(5*pi/6), gp1[1]-l_lip*sin(5*pi/6), 0),)
-gusset_part.DatumPointByCoordinate((gp1[0]-l_lip*cos(5*pi/6), gp1[1]-l_lip*sin(5*pi/6), d),)
-
-gusset_part.PartitionFaceByShortestPath(
-    faces=gusset_part.faces.getClosest(coordinates=((gp1[0], gp1[1], 0),))[0][0],
-    point1=gusset_part.datum.items()[0][1],
-    point2=gusset_part.datum.items()[1][1],
-    )
-
-gusset_part.DatumPointByCoordinate((gp2[0]-l_lip*cos(-pi/2), gp2[1]-l_lip*sin(-pi/2), 0),)
-gusset_part.DatumPointByCoordinate((gp2[0]-l_lip*cos(-pi/2), gp2[1]-l_lip*sin(-pi/2), d),)
-
-gusset_part.PartitionFaceByShortestPath(
-    faces=gusset_part.faces.getClosest(coordinates=((gp2[0], gp2[1], 0),))[0][0],
-    point1=gusset_part.datum.items()[2][1],
-    point2=gusset_part.datum.items()[3][1],
-    )
-
-gusset_part.DatumPointByCoordinate((gp3[0]-l_lip*cos(pi/6), gp3[1]-l_lip*sin(pi/6), 0),)
-gusset_part.DatumPointByCoordinate((gp3[0]-l_lip*cos(pi/6), gp3[1]-l_lip*sin(pi/6), d),)
-
-gusset_part.PartitionFaceByShortestPath(
-    faces=gusset_part.faces.getClosest(coordinates=((gp3[0], gp3[1], 0),))[0][0],
-    point1=gusset_part.datum.items()[4][1],
-    point2=gusset_part.datum.items()[5][1],
-    )
+# create assisting datum points to partition the lips
+#gusset_part.DatumPointByCoordinate((gp1[0]-l_lip*cos(5*pi/6), gp1[1]-l_lip*sin(5*pi/6), 0),)
+#gusset_part.DatumPointByCoordinate((gp1[0]-l_lip*cos(5*pi/6), gp1[1]-l_lip*sin(5*pi/6), diameter),)
+#
+#gusset_part.DatumPointByCoordinate((gp2[0]-l_lip*cos(-pi/2), gp2[1]-l_lip*sin(-pi/2), 0),)
+#gusset_part.DatumPointByCoordinate((gp2[0]-l_lip*cos(-pi/2), gp2[1]-l_lip*sin(-pi/2), diameter),)
+#
+#gusset_part.DatumPointByCoordinate((gp3[0]-l_lip*cos(pi/6), gp3[1]-l_lip*sin(pi/6), 0),)
+#gusset_part.DatumPointByCoordinate((gp3[0]-l_lip*cos(pi/6), gp3[1]-l_lip*sin(pi/6), diameter),)
+#
+## Partition the 3 gusset plate fins to separate the lip parts
+#gusset_part.PartitionFaceByShortestPath(
+#    faces=gusset_part.faces.getClosest(coordinates=((gp1[0], gp1[1], 0),))[0][0],
+#    point1=gusset_part.datum.items()[0][1],
+#    point2=gusset_part.datum.items()[1][1],
+#    )
+#
+#gusset_part.PartitionFaceByShortestPath(
+#    faces=gusset_part.faces.getClosest(coordinates=((gp2[0], gp2[1], 0),))[0][0],
+#    point1=gusset_part.datum.items()[2][1],
+#    point2=gusset_part.datum.items()[3][1],
+#    )
+#
+#gusset_part.PartitionFaceByShortestPath(
+#    faces=gusset_part.faces.getClosest(coordinates=((gp3[0], gp3[1], 0),))[0][0],
+#    point1=gusset_part.datum.items()[4][1],
+#    point2=gusset_part.datum.items()[5][1],
+#    )
 
 # Material ----------------------------------------------------------------------------------------------------------------------
 
@@ -430,7 +578,7 @@ stc_mdl.HomogeneousShellSection(
     poissonDefinition=DEFAULT,
     preIntegrate=OFF,
     temperature=GRADIENT, 
-    thickness=t,
+    thickness=cs_thickness,
     thicknessField='',
     thicknessModulus=None,
     thicknessType=UNIFORM,
@@ -447,7 +595,7 @@ stc_mdl.HomogeneousShellSection(
     poissonDefinition=DEFAULT,
     preIntegrate=OFF,
     temperature=GRADIENT, 
-    thickness=tg,
+    thickness=gusset_thickness,
     thicknessField='',
     thicknessModulus=None,
     thicknessType=UNIFORM,
@@ -486,7 +634,7 @@ gusset_part.SectionAssignment(
 # Meshing -----------------------------------------------------------------------------------------------------------------------
 
 # Global seeding in mm
-seedsize = 30
+#seedsize = pi*d_circumscribed/100
 
 # -Sector
 sector_part.setMeshControls(
@@ -497,7 +645,7 @@ sector_part.setMeshControls(
 sector_part.seedPart(
     deviationFactor=0.1, 
     minSizeFactor=0.1,
-    size=seedsize
+    size=parameters.elem_size
     )
 sector_part.generateMesh()
 
@@ -510,7 +658,7 @@ gusset_part.setMeshControls(
 gusset_part.seedPart(
     deviationFactor=0.1, 
     minSizeFactor=0.1,
-    size=seedsize
+    size=parameters.elem_size
     )
 gusset_part.generateMesh()
 
@@ -548,23 +696,23 @@ g1_instance=assmbl.Instance(
     name='gusset-1',
     part=gusset_part
     )
+
 g2_instance=assmbl.Instance(
     dependent=ON,
     name='gusset-2',
     part=gusset_part
     )
-g3_instance=assmbl.Instance(
-    dependent=ON,
-    name='gusset-3',
-    part=gusset_part
+
+# --Translate and rotate them to the right position
+g2_instance.translate(
+    vector=(0.0, 0.0, (l_tot - l_joint))
     )
 
-# --Translate them to the right position
-g2_instance.translate(
-    vector=(0.0, 0.0, (length))
-    )
-g3_instance.translate(
-    vector=(0.0, 0.0, 2*(length))
+assmbl.rotate(
+    angle=180.0,
+    axisDirection=(0.0, 1, 0.0),
+    axisPoint=(0.0, 0.0, l_joint / 2),
+    instanceList=('gusset-1', )
     )
 
 # Interactions ------------------------------------------------------------------------------------------------------------------
@@ -582,9 +730,9 @@ gholes1=()
 gholes2=()
 gholes3=()
 
-# Position of the holes on the cross-section
-sh11 = np.array([x_sector[1], y_sector[1]])
-sh12 = np.array([x_sector[-2], y_sector[-2]])
+# Position of the holes on the cross-section (x-y coordinates)
+sh11 = np.array([x_sector[0] + bolts_w * cos(-pi / 6), y_sector[0] + bolts_w * sin(-pi / 6)])
+sh12 = np.array([x_sector[-1] + bolts_w * cos(7 * pi / 6), y_sector[-1] + bolts_w * sin(7 * pi / 6)])
 
 gh1 = (gp1[0]-bolts_w*cos(5*pi/6), gp1[1]-bolts_w*sin(5*pi/6))
 gh2 = (gp2[0]-bolts_w*cos(-pi/2), gp2[1]-bolts_w*sin(-pi/2))
@@ -630,7 +778,7 @@ for oo in (range(3)):
         
         ii+=1
             
-# Span 1
+# Span
 
 for oo in (range(3)):
     ii=1
@@ -652,8 +800,7 @@ for oo in (range(3)):
         
         ii+=1
 
-# middle connection
-
+# End 2 connection
 
 for oo in (range(3)):
     ii=1
@@ -676,139 +823,75 @@ for oo in (range(3)):
         
         ii+=1
 
-# Span 2
-
-for oo in (range(3)):
-    ii=1
-    for o in tuple(bolts_z4):
-        
-        assmbl.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
-        
-        assmbl.Set(
-            edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
-            s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), ),
-            name='b'+str(ii)+str(oo)+'-set4'
-            )
-        
-        stc_mdl.RigidBody(
-            name='b1'+str(ii)+str(oo)+'span2',
-            refPointRegion=Region(referencePoints=(assmbl.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
-            tieRegion=assmbl.sets['b'+str(ii)+str(oo)+'-set4']
-            )
-        
-        ii+=1
-
-# End 2 connection
-for oo in (range(3)):
-    ii=1
-    for o in tuple(bolts_z5):
-        
-        assmbl.ReferencePoint((gh[oo-3][0], gh[oo-3][1], float(o)))
-        
-        assmbl.Set(
-            edges=s_instance[oo-3].edges.findAt(((sh[oo-3][0][0], sh[oo-3][0][1], float(o)-d_washer/2), ), )+\
-            s_instance[oo-2].edges.findAt(((sh[oo-2][1][0], sh[oo-2][1][1], float(o)-d_washer/2), ), )+\
-            g3_instance.edges.findAt(((gh[oo-3][0], gh[oo-3][1], float(o)-d_washer/2), ), ),
-            name='b'+str(ii)+str(oo)+'set5'
-            )
-        
-        stc_mdl.RigidBody(
-            name='b1'+str(ii)+str(oo)+'joint3',
-            refPointRegion=Region(referencePoints=(assmbl.referencePoints.findAt((gh[oo-3][0], gh[oo-3][1], float(o))), )),
-            tieRegion=assmbl.sets['b'+str(ii)+str(oo)+'set5']
-            )
-        
-        ii+=1
 
 # Create reference points for BCs/loads.
 
 # -RPs for the faces at the two ends of the columns
-assmbl.ReferencePoint((0.0, 0.0, d/2))
-assmbl.ReferencePoint((0.0, 0.0, (2*length + d/2)))
+assmbl.ReferencePoint((0.0, 0.0, 0.0))
+assmbl.ReferencePoint((0.0, 0.0, l_tot))
 
-# - RP at the middle
-assmbl.ReferencePoint((0.0, 0.0, (length + d/2)))
-
+rp_end1 = assmbl.referencePoints.findAt((0, 0, 0))
+rp_end2 = assmbl.referencePoints.findAt((0, 0, l_tot))
 
 # - End face couplings to reference points
 
 # End 1
-assmbl.Set(
+rp_end1_set = assmbl.Set(
     name='RP-1-set', 
-    referencePoints=(assmbl.referencePoints.findAt((0, 0, d/2)), )
+    referencePoints = (rp_end1, )
     )
 
-assmbl.Set(
-    edges=g1_instance.edges.getByBoundingBox(-d,-d,0,d,d,0)+\
-    s_instance[0].edges.getByBoundingBox(-d,-d,0,d,d,0)+\
-    s_instance[1].edges.getByBoundingBox(-d,-d,0,d,d,0)+\
-    s_instance[2].edges.getByBoundingBox(-d,-d,0,d,d,0),
-    name='end1-face',
-    )
-
-#assmbl.Set(
-#    edges=g1_instance.edges.findAt(((0, 0, d/2), ), ),
-#    name='end1-face',
-#    )
+if bool(parameters.load_cross_section):
+    end1_face_set = assmbl.Set(
+        edges=g1_instance.edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,0,d_circumscribed,d_circumscribed,0)+\
+        s_instance[0].edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,0,d_circumscribed,d_circumscribed,0)+\
+        s_instance[1].edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,0,d_circumscribed,d_circumscribed,0)+\
+        s_instance[2].edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,0,d_circumscribed,d_circumscribed,0),
+        name='end1-face',
+        )
+else:
+    end1_face_set = assmbl.Set(
+        edges=g1_instance.edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,0,d_circumscribed,d_circumscribed,0),
+        name='end1-face',
+        )
 
 stc_mdl.Coupling(
-    controlPoint=assmbl.sets['RP-1-set'], 
+    controlPoint=rp_end1_set, 
     couplingType=KINEMATIC,
     influenceRadius=WHOLE_SURFACE,
     localCsys=None,
     name='end1-coupling', 
-    surface=assmbl.sets['end1-face'],
+    surface=end1_face_set,
     u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
     )
 
 # End 2
 
-assmbl.Set(
+rp_end2_set = assmbl.Set(
     name='RP-2-set',
-    referencePoints=(assmbl.referencePoints.findAt((0, 0, (2*length + d/2))), )
+    referencePoints=(rp_end2, )
     )
 
-assmbl.Set(
-    edges=g3_instance.edges.getByBoundingBox(-d,-d,(2*length+d),d,d,2*(2*length+d))+\
-    s_instance[0].edges.getByBoundingBox(-d,-d,(2*length+d),d,d,(2*length+d))+\
-    s_instance[1].edges.getByBoundingBox(-d,-d,(2*length+d),d,d,(2*length+d))+\
-    s_instance[2].edges.getByBoundingBox(-d,-d,(2*length+d),d,d,(2*length+d)),
-    name='end2-face'
-    )
-
-#assmbl.Set(
-#    edges=g3_instance.edges.findAt(((0, 0, (2*length + d/2)), ), ),
-#    name='end2-face',
-#    )
+if bool(parameters.load_cross_section):
+    end2_face_set = assmbl.Set(
+        edges=g2_instance.edges.getByBoundingBox(-d_circumscribed,-d_circumscribed, l_tot,d_circumscribed,d_circumscribed,l_tot)+\
+        s_instance[0].edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,l_tot,d_circumscribed,d_circumscribed,l_tot)+\
+        s_instance[1].edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,l_tot,d_circumscribed,d_circumscribed,l_tot)+\
+        s_instance[2].edges.getByBoundingBox(-d_circumscribed,-d_circumscribed,l_tot,d_circumscribed,d_circumscribed,l_tot),
+        name='end2-face'
+        )
+else:
+    end2_face_set = assmbl.Set(
+        edges=g2_instance.edges.getByBoundingBox(-d_circumscribed, -d_circumscribed, l_tot, d_circumscribed, d_circumscribed, l_tot),
+        name='end2-face'
+        )
 
 stc_mdl.Coupling(
-    controlPoint=assmbl.sets['RP-2-set'], 
+    controlPoint=rp_end2_set, 
     couplingType=KINEMATIC, influenceRadius=WHOLE_SURFACE,
     localCsys=None,
     name='end2-coupling', 
-    surface=assmbl.sets['end2-face'],
-    u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
-    )
-
-# Middle
-
-assmbl.Set(
-    name='RP-Mid-set', 
-    referencePoints=(assmbl.referencePoints.findAt((0.0, 0.0, (length + d/2))), )
-    )
-    
-assmbl.Set(
-    edges=g2_instance.edges.findAt(((0, 0, (length + d/2)), ), ),
-    name='gusset-fin-interface',
-    )
-
-stc_mdl.Coupling(
-    controlPoint=assmbl.sets['RP-Mid-set'], 
-    couplingType=KINEMATIC,
-    influenceRadius=WHOLE_SURFACE,
-    localCsys=None,
-    name='Mid-coupling', 
-    surface=assmbl.sets['gusset-fin-interface'],
+    surface=end2_face_set,
     u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON
     )
 
@@ -828,10 +911,10 @@ end1_BC=stc_mdl.DisplacementBC(
     fieldName='', 
     localCsys=None, 
     name='fix-end1', 
-    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, d/2)), )), 
+    region=rp_end1_set, 
     u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=SET
     )
-    
+
 end2_BC=stc_mdl.DisplacementBC(
     amplitude=UNSET,
     createStepName='Initial', 
@@ -839,21 +922,9 @@ end2_BC=stc_mdl.DisplacementBC(
     fieldName='', 
     localCsys=None, 
     name='fix-end2', 
-    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, (2*length+d/2))), )), 
+    region=rp_end2_set, 
     u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=SET
     )
-
-middle_BC=stc_mdl.DisplacementBC(
-    amplitude=UNSET,
-    createStepName='Initial', 
-    distributionType=UNIFORM, 
-    fieldName='', 
-    localCsys=None, 
-    name='fix-middle', 
-    region=Region(referencePoints=(assmbl.referencePoints.findAt((0, 0, length+d/2)), )), 
-    u1=SET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
-    )
-
 
 # Load -------------------------------------------------------------------------------
 
@@ -867,40 +938,39 @@ ss22=ss12.dot(Rmat)
 ss31=ss21.dot(Rmat)
 ss32=ss22.dot(Rmat)
 
-for i in np.concatenate([np.array(range(1, len(bolts_z2))),(len(bolts_z2)+np.array(range(1, len(bolts_z4))))]):
-
+for i in range(1, len(bolts_z2)):
     assmbl.Surface(
-        name='lip1'+str(i),
-        side1Edges=assmbl.instances['sector-1'].edges.findAt(((ss11[0], ss11[1], (np.concatenate([bolts_z2,bolts_z4]))[i]-2*d_washer), ), )+\
-            assmbl.instances['sector-1-rad-2'].edges.findAt(((ss22[0], ss22[1], (np.concatenate([bolts_z2,bolts_z4]))[i]-2*d_washer), ), )+\
-            assmbl.instances['sector-1-rad-2'].edges.findAt(((ss21[0], ss21[1], (np.concatenate([bolts_z2,bolts_z4]))[i]-2*d_washer), ), )+\
-            assmbl.instances['sector-1-rad-3'].edges.findAt(((ss32[0], ss32[1], (np.concatenate([bolts_z2,bolts_z4]))[i]-2*d_washer), ), )
+        name='lip_edge_1'+str(i),
+        side1Edges=s1_instance.edges.findAt(((ss11[0], ss11[1], bolts_z2[i]-2*d_washer), ), )+\
+            s2_instance.edges.findAt(((ss22[0], ss22[1], bolts_z2[i]-2*d_washer), ), )+\
+            s3_instance.edges.findAt(((ss31[0], ss31[1], bolts_z2[i]-2*d_washer), ), )+\
+            s1_instance.edges.findAt(((ss12[0], ss12[1], bolts_z2[i]-2*d_washer), ), )
         )
     
     assmbl.Surface(
-        name='lip2'+str(i),
-        side1Edges=assmbl.instances['sector-1-rad-3'].edges.findAt(((ss31[0], ss31[1], (np.concatenate([bolts_z2,bolts_z4]))[i]-2*d_washer), ), )+\
-            assmbl.instances['sector-1'].edges.findAt(((ss12[0], ss12[1], (np.concatenate([bolts_z2,bolts_z4]))[i]-2*d_washer), ), )
+        name='lip_edge_2'+str(i),
+        side1Edges=s2_instance.edges.findAt(((ss21[0], ss21[1], bolts_z2[i]-2*d_washer), ), )+\
+            s3_instance.edges.findAt(((ss32[0], ss32[1], bolts_z2[i]-2*d_washer), ), )
         )
     
-    mdb.models['IMP'].ShellEdgeLoad(
+    stc_mdl.ShellEdgeLoad(
         createStepName='IMP',
         distributionType=UNIFORM, 
         field='',
         localCsys=None,
         magnitude=1.0*(-1)**i,
         name='Load-1'+str(i),
-        region=mdb.models['IMP'].rootAssembly.surfaces['lip1'+str(i)]
+        region=assmbl.surfaces['lip_edge_1'+str(i)]
         )
     
-    mdb.models['IMP'].ShellEdgeLoad(
+    stc_mdl.ShellEdgeLoad(
         createStepName='IMP',
         distributionType=UNIFORM, 
         field='',
         localCsys=None,
         magnitude=1.0*(-1)**(i+1),
         name='Load-2'+str(i),
-        region=mdb.models['IMP'].rootAssembly.surfaces['lip2'+str(i)]
+        region=assmbl.surfaces['lip_edge_2'+str(i)]
         )
 
 # Field output request. Request displacements 'U'
@@ -909,10 +979,13 @@ stc_mdl.fieldOutputRequests.changeKey(
     fromName='F-Output-1', 
     toName='fields'
     )
+
 stc_mdl.fieldOutputRequests['fields'].setValues(
     variables=('U',)
     )
 
+## Save the model -------------------------------------------------------------------------------------------------------
+mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
 
 # RIKS model ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -933,30 +1006,35 @@ riks_mdl.StaticRiksStep(
     previous='Initial',
     nlgeom=ON,
     maxNumInc=parameters.max_RIKS_increments,
-    extrapolation=PARABOLIC,
-    initialArcInc=0.01,
+    extrapolation=LINEAR,
+    initialArcInc=0.1,
     minArcInc=1e-07,
     totalArcLength=0.5
     )
 
-# Rename the material
-riks_mdl.materials.changeKey(fromName='elastic', toName='optim355')
-
-# Change to plastic material, optim355
+# Create elastoplastic material
+riks_mdl.Material(name='optim355')
+riks_mdl.materials['optim355'].Elastic(
+    table=((parameters.Youngs_modulus, 0.3), )
+    )
 riks_mdl.materials['optim355'].Plastic(
-    table=((381.1, 0.0), (
-    391.2, 0.0053), (404.8, 0.0197), (418.0, 0.0228), (444.2, 0.0310), (499.8, 
-    0.0503), (539.1, 0.0764), (562.1, 0.1009), (584.6, 0.1221), (594.4, 
-    0.1394))
+    table=(
+        (381.1, 0.0),
+        (391.2, 0.0053),
+        (404.8, 0.0197),
+        (418.0, 0.0228),
+        (444.2, 0.0310),
+        (499.8, 0.0503),
+        (539.1, 0.0764),
+        (562.1, 0.1009),
+        (584.6, 0.1221),
+        (594.4, 0.1394)
+        )
     )
 
-# Change the section material name accordingly
-riks_mdl.sections['gusset'].setValues(
-    material='optim355',
-    )
-
+# Change the section material for the sector to the elastoplastic
 riks_mdl.sections['sector'].setValues(
-    material='optim355',
+    material='optim355'
     )
 
 # Create a set to act as a control point for the solver killer subroutine
@@ -964,20 +1042,94 @@ assmbl_riks=riks_mdl.rootAssembly
 
 assmbl_riks.Set(
     name='RIKS_NODE', 
-    nodes=assmbl_riks.instances['gusset-3'].nodes.getByBoundingSphere((0, 0, 2 * length + d), parameters.elem_size * 0.1)
-	)
+    nodes=assmbl_riks.instances['gusset-2'].nodes.getByBoundingSphere((0, 0, l_tot), parameters.elem_size * 0.1)
+    )
+
+# Create variables for the three sector instances
+sec1_inst = assmbl_riks.instances['sector-1']
+sec2_inst = assmbl_riks.instances['sector-1-rad-2']
+sec3_inst = assmbl_riks.instances['sector-1-rad-3']
+sectors = (sec1_inst, sec2_inst, sec3_inst)
+
+# Hard contact interaction
+if bool(parameters.hard_contact):
+    riks_mdl.ContactProperty('contact_prop')
+    
+    riks_mdl.interactionProperties['contact_prop'].NormalBehavior(
+        allowSeparation=ON,
+        constraintEnforcementMethod=DEFAULT, 
+        pressureOverclosure=HARD
+        )
+        
+    contact_int = riks_mdl.ContactStd(
+        createStepName='Initial',
+        name='lip_contact'
+        )
+    
+    contact_int.contactPropertyAssignments.appendInStep(
+        assignments=((GLOBAL, SELF, 'contact_prop'), ),
+        stepName='Initial'
+        )
+    
+    for sec_num in (0, 1, 2):
+        assmbl_riks.Surface(
+            name='lip0'+str(sec_num)+'1',
+            side12Faces=sectors[sec_num].faces.findAt(((sh[sec_num][0][0], sh[sec_num][0][1], bolts_z2[0] - l_lip), ))
+            )
+            
+        assmbl_riks.Surface(
+            name='lip0'+str(sec_num)+'2',
+            side12Faces=sectors[sec_num].faces.findAt(((sh[sec_num][1][0], sh[sec_num][1][1], bolts_z2[0] - l_lip), ))
+            )
+    
+    for bolt_num in range(len(bolts_z2)):
+        for sec_num in (0, 1, 2):
+            assmbl_riks.Surface(
+                name='lip'+str(bolt_num + 1)+str(sec_num)+'1',
+                side12Faces=sectors[sec_num].faces.findAt(((sh[sec_num][0][0], sh[sec_num][0][1], bolts_z2[bolt_num] + l_lip), ))
+                )
+                
+            assmbl_riks.Surface(
+                name='lip'+str(bolt_num + 1)+str(sec_num)+'2',
+                side12Faces=sectors[sec_num].faces.findAt(((sh[sec_num][1][0], sh[sec_num][1][1], bolts_z2[bolt_num] + l_lip), ))
+                )
+    
+    for bolt_num in range(len(bolts_z2) + 1):
+        contact_int.includedPairs.setValuesInStep(
+            addPairs=(
+                (assmbl_riks.surfaces['lip'+str(bolt_num)+'01'], assmbl_riks.surfaces['lip'+str(bolt_num)+'12']),
+                (assmbl_riks.surfaces['lip'+str(bolt_num)+'21'], assmbl_riks.surfaces['lip'+str(bolt_num)+'02']),
+                (assmbl_riks.surfaces['lip'+str(bolt_num)+'11'], assmbl_riks.surfaces['lip'+str(bolt_num)+'22']),
+                ),
+            stepName='Initial', 
+            useAllstar=OFF
+            )
+        
+        contact_int.surfaceThicknessAssignments.appendInStep(
+            assignments=(
+                (assmbl_riks.surfaces['lip' + str(bolt_num)+'01'], ORIGINAL, (1 + parameters.gusset_thickness_ratio)),
+                (assmbl_riks.surfaces['lip' + str(bolt_num)+'02'], ORIGINAL, (1 + parameters.gusset_thickness_ratio)),
+                (assmbl_riks.surfaces['lip' + str(bolt_num)+'11'], ORIGINAL, (1 + parameters.gusset_thickness_ratio)),
+                (assmbl_riks.surfaces['lip' + str(bolt_num)+'12'], ORIGINAL, (1 + parameters.gusset_thickness_ratio)),
+                (assmbl_riks.surfaces['lip' + str(bolt_num)+'21'], ORIGINAL, (1 + parameters.gusset_thickness_ratio)),
+                (assmbl_riks.surfaces['lip' + str(bolt_num)+'22'], ORIGINAL, (1 + parameters.gusset_thickness_ratio)),
+                ), 
+            stepName='Initial'
+            )
 
 # Overall buckling Imperfections
 
 # Make assmblly instances independent o parts
 
-assmbl_riks.makeIndependent(instances=(
-    assmbl_riks.instances['sector-1'], 
-    assmbl_riks.instances['sector-1-rad-2'], 
-    assmbl_riks.instances['sector-1-rad-3'], 
-    assmbl_riks.instances['gusset-1'], 
-    assmbl_riks.instances['gusset-2'], 
-    assmbl_riks.instances['gusset-3']))
+assmbl_riks.makeIndependent(
+    instances=(
+        assmbl_riks.instances['sector-1'], 
+        assmbl_riks.instances['sector-1-rad-2'], 
+        assmbl_riks.instances['sector-1-rad-3'], 
+        assmbl_riks.instances['gusset-1'], 
+        assmbl_riks.instances['gusset-2']
+        )
+    )
 
 # Translate nodes for global imperfections
 
@@ -988,57 +1140,14 @@ for i in assmbl_riks.allInstances.items():
         zi = i[1].nodes[j].coordinates[2]
         assmbl_riks.editNode(
             nodes=i[1].nodes[j],
-            offset1=(l_tot/(2*parameters.bow_imperfections))*sin(2*pi*zi/l_tot)*cos(parameters.imperfections_angle),
-            offset2=(l_tot/(2*parameters.bow_imperfections))*sin(2*pi*zi/l_tot)*sin(parameters.imperfections_angle)
+            offset1=(l_tot/(parameters.bow_imperfections))*sin(pi*zi/l_tot)*cos(parameters.imperfections_angle),
+            offset2=(l_tot/(parameters.bow_imperfections))*sin(pi*zi/l_tot)*sin(parameters.imperfections_angle)
             )
 
-
-## The following commented code displaces the three sectors at the bolts' positions
-#for i in [2, 4]:
-#    for ii in range(1, len(bolts_z2)+1):
-#        
-#        riks_mdl.DisplacementBC(
-#            amplitude=UNSET, 
-#            createStepName='IMP',
-#            distributionType=UNIFORM,
-#            fieldName='',
-#            fixed=OFF, 
-#            localCsys=None,
-#            name='b1'+str(i)+str(ii),
-#            region=assmbl_riks.sets['b'+str(ii)+'0-set'+str(i)], 
-#            u1=cos(5*pi/6)*u_dist, u2=sin(5*pi/6)*u_dist, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
-#            )
-#        
-#        riks_mdl.DisplacementBC(
-#            amplitude=UNSET, 
-#            createStepName='IMP',
-#            distributionType=UNIFORM,
-#            fieldName='',
-#            fixed=OFF, 
-#            localCsys=None,
-#            name='b2'+str(i)+str(ii),
-#            region=assmbl_riks.sets['b'+str(ii)+'1-set'+str(i)], 
-#            u1=UNSET, u2=u_dist, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
-#            )
-#            
-#        riks_mdl.DisplacementBC(
-#            amplitude=UNSET, 
-#            createStepName='IMP',
-#            distributionType=UNIFORM,
-#            fieldName='',
-#            fixed=OFF, 
-#            localCsys=None,
-#            name='b3'+str(i)+str(ii),
-#            region=assmbl_riks.sets['b'+str(ii)+'2-set'+str(i)], 
-#            u1=cos(pi/6)*u_dist, u2=sin(pi/6)*u_dist, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET
-#            )
-
-
 # Apply concentrated force
-N_el_rd = parameters.yield_stress*Area
 
 riks_mdl.ConcentratedForce(
-    cf3=-N_el_rd,
+    cf3=-N_b_rd,
     createStepName='RIKS',
     distributionType=UNIFORM,
     field='',
@@ -1067,15 +1176,6 @@ riks_mdl.HistoryOutputRequest(
     region=riks_mdl.rootAssembly.sets['RP-2-set'],
     sectionPoints=DEFAULT,
     variables=('U3', )
-    )
-
-riks_mdl.HistoryOutputRequest(
-    createStepName='RIKS',
-    name='moment',
-    rebar=EXCLUDE,
-    region=riks_mdl.rootAssembly.sets['RP-Mid-set'],
-    sectionPoints=DEFAULT,
-    variables=('UR1', )
     )
 
 riks_mdl.fieldOutputRequests.changeKey(
@@ -1134,7 +1234,7 @@ Umax = xtr.max_result(stc_odb, ['U', 'Magnitude'])
 odbAccess.closeOdb(stc_odb)
 
 # Calculate the imperfection amplitude based on max displacement
-a_factor = s/(parameters.distortional_imperfections*Umax)
+a_factor = bolts_dist/(parameters.distortional_imperfections*Umax)
 
 # Edit the keywords for the compression riks model to include imperfections from the static analysis
 riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
@@ -1142,7 +1242,7 @@ riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1,
 '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE='
 + IDstring+'-imp' +',STEP=1\n1,'+ str(a_factor)+'\n**')
 
-#riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
+riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
 
 # Riks model
 riks_job=mdb.Job(
@@ -1166,16 +1266,23 @@ riks_job=mdb.Job(
     resultsFormat=ODB,
     scratch='', 
     type=ANALYSIS,
-#    userSubroutine='C:\\Users\\manpan\\Documents\\LTU\\Polygoner\\GN_Riks_killer.for',
+    userSubroutine=os.getcwd()+'/GN_Riks_killer.f',
     waitHours=0,
     waitMinutes=0
     )
 
 ## Save the model -------------------------------------------------------------------------------------------------------
-mdb.saveAs(pathName=os.getcwd()+'\\'+IDstring+'.cae')
+mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
 
 # Submit the riks job and wait for the results
 riks_job.submit()
+
+# Delete initial model
+if mdb.models.has_key('Model-1'):
+    del mdb.models['Model-1']
+
+# Save the model -------------------------------------------------------------------------------------------------------
+mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
 
 # Return to parent directory
 os.chdir('..')
