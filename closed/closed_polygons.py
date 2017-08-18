@@ -1,11 +1,18 @@
 # Abaqus python method creating a model of a closed polygon with initial imperfections
 # Current version #
+# Version 8
+#
+# Version history #
+#
+# Version 7
+# 15/08/2017
+# Corrected sigma_cr_shell. Some EN1993-1-6 formulas were written wrong
+#
 # Version 6
 # 13/07/2017
 # Added a second function aiding the design of the test specimens
 # The new function accepts n_sides, thickness, class, fy and designs a specimen
 #
-# Version history #
 # Version 5
 # 05/06/2017
 # Modified to run a GNIA
@@ -43,20 +50,30 @@ import os
 import sys
 import odbAccess
 from shutil import copyfile
+from EN_tools import N_pl_Rd as single_plate_Rd
 
-def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_name):
+
+def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_name, r_circle=None, f_yield=None, n_eigen=None, u_max=None):
     # Create a new model database. This will also start a new journal file for the current session.
     Mdb()
     
     # Radius of the circle of perimeter equal to the polygon perimeter
-    r_circle = 250.
+    if r_circle is None:
+        r_circle = 250.
+    else:
+        r_circle = float(r_circle)
     
     # Yield stress
-    f_yield = 381.
+    if f_yield is None:
+        f_yield = 381.
+    else:
+        f_yield = float(f_yield)
     
     # Number of requested eigenvalues
-    n_eigen = 4
-    
+    if n_eigen is None:
+        n_eigen = 1
+    else:
+        n_eigen = int(n_eigen)
     
     # Out-of-roundness imperfection class from table 8.1 of EC3-1-6 8.4.20
     # class A => round_imp_class = 0.014
@@ -69,13 +86,16 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     # class A => u_max = 0.006
     # class B => u_max = 0.010
     # class C => u_max = 0.016
-    u_max = 0.016
+    if u_max is None:
+        u_max = 0.006
+    else:
+        u_max = float(u_max)
     
-    # END INPUT
+    ## END INPUT ##
     
-    # GEOMETRY
+    ## GEOMETRY ##
     
-    # Radius of the polygons circumscribed
+    # Radius of the polygon's circumscribed circle
     r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
     
     # Diameter
@@ -90,19 +110,50 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     # Width of each side
     w_side = diameter * sin(pi / n_sides)
     
-    # Perimeter
-    perimeter = n_sides * diameter * sin(theta / 2)
+    ## Perimeter
+    #perimeter = n_sides * diameter * sin(theta / 2)
     
     # Epsilon for the material
     epsilon = sqrt(235. / f_yield)
     
     # Thickness for profile on class 3-4 limit (classification as plated, not tube)
-    shell_thickness = (diameter * sin(theta/2)) / (p_classification * epsilon)
+    shell_thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
     
     # Classification as tube
     t_classification = 2 * r_circle / (shell_thickness * epsilon ** 2)
     
-    # List of angles of the polygon corner points to the x-axis
+    # Axial compression resistance , Npl
+    N_pl_Rd = n_sides * single_plate_Rd(shell_thickness, w_side, f_yield)
+    
+    # CS PROPERTIES
+    
+    # Calculate cross-sectional properties using the function from abq_toolset
+    #coord = [x_corners, y_corners]
+    #ends = [range(n_sides), range(1,n_sides)+[0], [shell_thickness]*(n_sides)]
+    #
+    #Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
+    
+    ## MODEL ##
+    
+    # Buckling model name
+    bckl_model_name = 'bckl_model'
+    
+    # Change the pre-existing model name
+    mdb.models.changeKey(
+        fromName = 'Model-1',
+        toName = bckl_model_name
+        )
+    
+    #Create a variable for the model
+    bckl_model = mdb.models.values()[0]
+    
+    # Create sketch
+    cs_sketch = bckl_model.ConstrainedSketch(
+        name = 'cs_sketch',
+        sheetSize = 2 * r_circum
+        )
+    
+    # Polar coordinate of ths polygon vertices on the cross-section plane
     phii = []
     for i_index in range(n_sides):
         phii.append(i_index * theta)
@@ -111,80 +162,6 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     x_corners = r_circum * np.cos(phii)
     y_corners = r_circum * np.sin(phii)
     
-    # CS PROPERTIES
-    
-    # Calculate cross-sectional properties using the function from abq_toolset
-    coord = [x_corners, y_corners]
-    ends = [range(n_sides), range(1,n_sides)+[0], [shell_thickness]*(n_sides)]
-    
-    Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
-    
-    # DESIGN RESISTANCE
-    
-    # Elastic critical load acc. to EN3-1-5 Annex A
-    # Uniform compression is assumed (k_sigma = 4)
-    psi = 1.
-    kapa_sigma = 8.2 / (1.05 + psi)
-    sigma_cr_plate =  190000 * (shell_thickness / w_side) ** 2
-    N_cr_plate = Area * kapa_sigma * sigma_cr_plate
-    
-    # Elastic critical load acc. to EN3-1-6 Annex D
-    omega = column_length / sqrt(r_circle * shell_thickness)
-    if 1.7 <= omega and omega <= (r_circle / shell_thickness):
-        C_x = 1.
-        length_category = 'medium'
-    elif omega < 1.7:
-        C_x = 1.36 - 1.83 / omega + 2.07 / omega ** 2
-        length_category = 'short'
-    else:
-        # C_x_b is read on table D.1 of EN3-1-5 Annex D acc. to BCs
-        # BC1 - BC1 is used on the Abaqus models (both ends clamped, see EN3-1-5 table 5.1)
-        C_x_b = 6.
-        C_x_N = min((1 + 0.2 * (1 - 2 * omega * shell_thickness / r_circle) / C_x_b), 0.6)
-        C_x = C_x_N
-        length_category = 'long'
-    
-    # Calculate critical stress, eq. D.2 on EN3-1-5 D.1.2.1-5
-    sigma_x_Rcr = 0.605 * 210000 * C_x * shell_thickness / r_circle
-    
-    # Elastic critical load acc to EN3-1-6 Annex D
-    N_cr_shell = Area * sigma_x_Rcr
-    
-    # Aeff calculation.
-    # Reduction factor for the effective area of the profile acc. to EC3-1-5
-    
-    lambda_p = p_classification / (28.4 * sqrt(kapa_sigma))
-    if lambda_p > 0.673 and int(p_classification) > 42:
-        rho = (lambda_p - 0.055 * (3 + psi)) / lambda_p ** 2
-    else:
-        rho = 1.
-    
-    # Effective area
-    A_eff = rho * Area
-    
-    # Axial compression resistance , Npl
-    N_pl_Rd = A_eff * f_yield
-    
-    # Make a new subdirectory for the current session
-    os.mkdir(IDstring)
-    
-    # Copy necessary files to the new directory
-    copyfile('abq_toolset.py', './'+IDstring+'/abq_toolset.py')
-    copyfile('closed_polygons.py', './'+IDstring+'/closed_polygons.py')
-    #copyfile('GN_Riks_killer.f', './'+IDstring+'/GN_Riks_killer.f')
-    
-    # Change working directory
-    os.chdir('./'+IDstring)
-    
-    # Create a variable for the model
-    bckl_model = mdb.Model(name = 'bckl_model')
-    
-    # Create sketch
-    cs_sketch = bckl_model.ConstrainedSketch(
-        name = 'cs_sketch',
-        sheetSize = 200.0
-        )
-    
     # Draw lines sides on the sketch for the polygon
     for current_corner in range(n_sides):
         cs_sketch.Line(
@@ -192,6 +169,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
             point2 = (x_corners[current_corner - 1], y_corners[current_corner - 1])
             )
     
+    # Fillet corners
     for current_side in range(n_sides):
         cs_sketch.FilletByRadius(
             curve1 = cs_sketch.geometry.items()[current_side-1][1],
@@ -409,11 +387,13 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     ## Save the model
     mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
     
-    #### RIKS ####
+    #### RIKS MODEL ####
     
+    # Riks model name
+    riks_model_name = 'riks_model'
     # Copy the buckling model
     riks_mdl = mdb.Model(
-        name = 'RIKS',
+        name = riks_model_name,
         objectToCopy = bckl_model
         )
     
@@ -421,11 +401,12 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     del riks_mdl.steps['bckl']
     
     # Create RIKS step
+    step_name = 'RIKS'
     riks_mdl.StaticRiksStep(
-        name='RIKS',
+        name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=50,
+        maxNumInc=3,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -440,10 +421,18 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     
     # Change to plastic material, optim355
     riks_mdl.materials['optim355'].Plastic(
-        table=((381.1, 0.0), (
-        391.2, 0.0053), (404.8, 0.0197), (418.0, 0.0228), (444.2, 0.0310), (499.8, 
-        0.0503), (539.1, 0.0764), (562.1, 0.1009), (584.6, 0.1221), (594.4, 
-        0.1394))
+        table=(
+            (381.1, 0.0),
+            (391.2, 0.0053),
+            (404.8, 0.0197),
+            (418.0, 0.0228),
+            (444.2, 0.0310),
+            (499.8, 0.0503),
+            (539.1, 0.0764),
+            (562.1, 0.1009),
+            (584.6, 0.1221),
+            (594.4, 0.1394)
+            )
         )
     
     # Change the section material name accordingly
@@ -456,12 +445,12 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     
     assmbl_riks.Set(
         name='RIKS_NODE', 
-        nodes=(mdb.models['RIKS'].rootAssembly.instances['short_column'].nodes[1:2], )
+        nodes=(assmbl_riks.instances['short_column'].nodes[1:2], )
         )
     
     # Set history output request for displacement
     disp_history = riks_mdl.HistoryOutputRequest(
-        createStepName = 'RIKS',
+        createStepName = step_name,
         name = 'disp', 
         rebar = EXCLUDE,
         region = rp_head_set, 
@@ -471,7 +460,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     
     # Set history output request for load
     load_history = riks_mdl.HistoryOutputRequest(
-        createStepName = 'RIKS',
+        createStepName = step_name,
         name = 'load', 
         rebar = EXCLUDE,
         region = rp_base_set, 
@@ -482,7 +471,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     # Apply concentrated load
     riks_mdl.ConcentratedForce(
         cf3 = -N_pl_Rd,
-        createStepName = 'RIKS', 
+        createStepName = step_name, 
         distributionType = UNIFORM,
         field = '',
         localCsys = None,
@@ -491,6 +480,9 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         )
     
     ###### END RIKS MODEL ######
+    
+    ###### BCKL JOB ######
+    
     ## Edit the keywords for the buckling model to write 'U' on file
     #bckl_model.keywordBlock.synchVersions(storeNodesAndElements = False)
     #bckl_model.keywordBlock.insert(xtr.GetBlockPosition(bckl_model,'*End Step')-1, '*NODE FILE\nU')
@@ -526,7 +518,10 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     #bckl_job.submit(consistencyChecking=OFF)
     #bckl_job.waitForCompletion()
     
+    ###### END BCKL JOB ######
+    
     ###### RIKS JOB #######
+    
     ## find the maximum displacement from the buckling analysis
     #bckl_odb = xtr.open_odb('BCKL-'+IDstring+'.odb')
     #Umax = xtr.max_result(bckl_odb, ['U', 'Magnitude'])
@@ -552,10 +547,10 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         historyPrint = OFF, 
         memory = 90,
         memoryUnits = PERCENTAGE,
-        model = 'RIKS',
+        model = riks_model_name,
         modelPrint = OFF, 
         multiprocessingMode = DEFAULT,
-        name = 'RIKS'+IDstring,
+        name = 'RIKS-'+IDstring,
         nodalOutputPrecision = SINGLE, 
         numCpus = 1,
         numGPUs = 0,
@@ -563,7 +558,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         resultsFormat = ODB,
         scratch = '',
         type = ANALYSIS,
-        userSubroutine='../GN_Riks_killer.f',
+        #userSubroutine='../GN_Riks_killer.f',
         waitHours = 0,
         waitMinutes = 0
         )
@@ -574,9 +569,12 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     
     # Save the model
     mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
+    
     ##### END RIKS JOB ##########
     
-    ## POST-PROCESSING
+    ##### POST-PROCESSING #####\
+    
+    ## BCKL post processing
     ## Open the buckling step odb file
     #bckl_odb = odbAccess.openOdb(path='BCKL-'+IDstring+'.odb')
     #bckl_step = bckl_odb.steps['bckl']
@@ -589,48 +587,50 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     #    eigenvalues = eigenvalues + (current_eigen, )
     #    eigen_string = eigen_string + "%.3E "%(current_eigen)
     
-    # Create and populate an output text with model information
-    
-    out_file = open('./'+IDstring+'_info.dat', 'w')
-    out_file.write('\n-GEOMETRIC CHARACTERISTICS\n')
-    out_file.write('Number of corners:....................................................... '+str(n_sides)+'\n')
-    out_file.write('Diameter of equal perimeter circle:...................................... '+str(2 * r_circle)+' [mm]\n')
-    out_file.write('Diameter of the circumscribed circle:.................................... '+str(2 * r_circum)+' [mm]\n')
-    out_file.write('Width of each side:...................................................... '+str(w_side)+' [mm]\n')
-    out_file.write('Perimeter:............................................................... '+str(perimeter)+' [mm]\n')
-    out_file.write('Total length:............................................................ '+str(column_length/1000)+' [m]\n')
-    out_file.write('Profile thickness:....................................................... '+str(shell_thickness)+' [mm]\n')
-    out_file.write('Bending radius for the creases of the polygon (midline):................. '+str(3 * shell_thickness)+' [mm]\n')
-    out_file.write('Cross-sectional Area:.................................................... '+str(Area)+' [mm^2]\n')
-    out_file.write('\n-STRUCTURAL CHARACTERISTICS'+'\n')
-    out_file.write('Yield strength:.......................................................... '+str(f_yield)+' [MPa]\n')
-    out_file.write('epsilon:................................................................. '+str(epsilon)+'\n')
-    out_file.write('Cross-section classification (as plate):................................. '+str(p_classification)+'\n')
-    out_file.write('Cross-section classification (as tube):.................................. '+str(t_classification)+'\n')
-    out_file.write('Class 4 reduction factor:................................................ '+str(rho)+'\n')
-    out_file.write('Effective area:.......................................................... '+str(A_eff)+' [mm^2]\n')
-    out_file.write('Plate critical stress:................................................... '+str(sigma_cr_plate)+' [MPa]\n')
-    out_file.write('Shell critical stress:................................................... '+str(sigma_x_Rcr)+' [MPa]\n')
-    out_file.write('Plate critical load:..................................................... '+str(N_cr_plate/1000.)+' [kN]\n')
-    out_file.write('Shell critical load:..................................................... '+str(N_cr_shell/1000.)+' [kN]\n')
-    out_file.write('Plastic resistance, N_pl_rd:............................................. '+str(N_pl_Rd/1000.)+' [kN]\n')
-    out_file.write('\n-RESULTS\n')
-    #for J_eigenvalues in range(1, n_eigen + 1):
-    #    out_file.write('Eigen value '+"%02d"%J_eigenvalues+':......................................................... '+str(eigenvalues[J_eigenvalues-1]/1000)+' [kN]\n')
-    
-    out_file.close()
-    
-    # Return to parent directory
-    os.chdir('..')
+    ## RIKS post processing
+    ## Find max LPF
+    #LPF = xtr.history_max('RIKS-'+IDstring, step_name)
+    #
+    ## Create and populate an output text with model information
+    #
+    #out_file = open('./'+IDstring+'_info.dat', 'w')
+    #out_file.write('\n-GEOMETRIC CHARACTERISTICS\n')
+    #out_file.write('Number of corners:....................................................... '+str(n_sides)+'\n')
+    #out_file.write('Diameter of equal perimeter circle:...................................... '+str(2 * r_circle)+' [mm]\n')
+    #out_file.write('Diameter of the circumscribed circle:.................................... '+str(2 * r_circum)+' [mm]\n')
+    #out_file.write('Width of each side:...................................................... '+str(w_side)+' [mm]\n')
+    #out_file.write('Perimeter:............................................................... '+str(perimeter)+' [mm]\n')
+    #out_file.write('Total length:............................................................ '+str(column_length/1000)+' [m]\n')
+    #out_file.write('Profile thickness:....................................................... '+str(shell_thickness)+' [mm]\n')
+    #out_file.write('Bending radius for the creases of the polygon (midline):................. '+str(3 * shell_thickness)+' [mm]\n')
+    #out_file.write('Cross-sectional Area:.................................................... '+str(Area)+' [mm^2]\n')
+    #out_file.write('\n-STRUCTURAL CHARACTERISTICS'+'\n')
+    #out_file.write('Yield strength:.......................................................... '+str(f_yield)+' [MPa]\n')
+    #out_file.write('epsilon:................................................................. '+str(epsilon)+'\n')
+    #out_file.write('Cross-section classification (as plate):................................. '+str(p_classification)+'\n')
+    #out_file.write('Cross-section classification (as tube):.................................. '+str(t_classification)+'\n')
+    #out_file.write('Class 4 reduction factor:................................................ '+str(rho)+'\n')
+    #out_file.write('Effective area:.......................................................... '+str(A_eff)+' [mm^2]\n')
+    #out_file.write('Plate critical stress:................................................... '+str(sigma_cr_plate)+' [MPa]\n')
+    #out_file.write('Shell critical stress:................................................... '+str(sigma_x_Rcr)+' [MPa]\n')
+    #out_file.write('Plate critical load:..................................................... '+str(N_cr_plate/1000.)+' [kN]\n')
+    #out_file.write('Shell critical load:..................................................... '+str(N_cr_shell/1000.)+' [kN]\n')
+    #out_file.write('Plastic resistance, N_pl_rd:............................................. '+str(N_pl_Rd/1000.)+' [kN]\n')
+    #out_file.write('\n-RESULTS\n')
+    ##for J_eigenvalues in range(1, n_eigen + 1):
+    ##    out_file.write('Eigen value '+"%02d"%J_eigenvalues+':......................................................... '+str(eigenvalues[J_eigenvalues-1]/1000)+' [kN]\n')
+    #
+    #out_file.close()
     
     ## Write current model data on a collective catalog of a batch execution
     
-    out_file = open('./GNIA.dat', 'a')
-    out_file.write("%03d %03d %03d %07.3f %07.3f %07.3f %07.3f %07.3f %010.3f %03d %05.3f %05.1f %05.1f %05.3f %010.3f %.3E %09.3f %09.3f %.3E %.3E "%(n_sides, m_of_waves, n_of_waves, 2 * r_circle, 2 * r_circum, w_side, perimeter, shell_thickness, Area, f_yield, epsilon, p_classification, t_classification, rho, A_eff, N_pl_Rd, sigma_cr_plate, sigma_x_Rcr, N_cr_plate, N_cr_shell))
+    out_file = open('./' + proj_name +'.dat', 'a')
+    #out_file.write("%03d %03d %03d %07.3f %07.3f %07.3f %07.3f %07.3f %010.3f %03d %05.3f %05.1f %05.1f %05.3f %010.3f %.3E %09.3f %09.3f %.3E %.3E "%(n_sides, m_of_waves, n_of_waves, 2 * r_circle, 2 * r_circum, w_side, perimeter, shell_thickness, Area, f_yield, epsilon, p_classification, t_classification, rho, A_eff, N_pl_Rd, sigma_cr_plate, sigma_x_Rcr, N_cr_plate, N_cr_shell))
+    out_file.write("%03d %03d"%(n_sides, p_classification))
     out_file.write('\n')
     out_file.close()
 
-def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield)
+def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield):
     # Create a new model database. This will also start a new journal file for the current session.
     Mdb()
     

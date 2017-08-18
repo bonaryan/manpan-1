@@ -63,6 +63,7 @@ def open_odb(odbPath):
     odb = odbAccess.openOdb(path=odbPath, readOnly=True)
     return odb
 
+
 # Calculate cross sectional properties. Two inputs required:
 # A 2d (2, n) list with x,y values of nodes and a (3, m) 2d list for elements(first-node, second-node, thickness)
 def cs_prop(nodes, elem):
@@ -273,7 +274,8 @@ def polygon_sector(n, R, t, tg, rbend, nbend, l_lip):
     return x_cs, y_cs, x_sector, y_sector
 
 
-# Look for tha max value in a field output of an odb
+# Look for the max value in a field output
+# Function name to be changed to field_max(). (look for instances on other script e.g. semi-closed script)
 def max_field_result(odb, result):
     result_field, result_invariant = result
     _max = -1.0e20
@@ -299,28 +301,26 @@ def max_field_result(odb, result):
     return _max
 
 
-
-
-##### TO BE FIXED. THE REFERENCE POINTS (rp1key, ho1key etc.) ARE NOT GENERIC.
-###### Fetch maximum load, displacement and LPF for a riks analysis.
-###### The method assumes that a) the the odb is located in the current directory b) there is a step with name "RIKS" c) 
-#####odb_name = 'riks-job'
-#####def max_hist_result
-#####    myOdb = odbAccess.openOdb(path=odb_name+'.odb')
-#####    RIKSstep = myOdb.steps['RIKS']
-#####    rp1key = RIKSstep.historyRegions.keys()[1]
-#####    ho1key = RIKSstep.historyRegions[rp1key].historyOutputs.keys()[0]
-#####    rp2key = RIKSstep.historyRegions.keys()[2]
-#####    ho2key = RIKSstep.historyRegions[rp2key].historyOutputs.keys()[0]
-#####    asskey = RIKSstep.historyRegions.keys()[0]
-#####    hoasse = RIKSstep.historyRegions[asskey].historyOutputs.keys()[-1]
-#####    load_hist = RIKSstep.historyRegions[rp1key].historyOutputs[ho1key].data
-#####    disp_hist = RIKSstep.historyRegions[rp2key].historyOutputs[ho2key].data
-#####    lpf_hist = RIKSstep.historyRegions[asskey].historyOutputs[hoasse].data
-#####    maxpos = load_hist.index(max(load_hist,key=lambda x:x[1]))
-#####    load = load_hist[maxpos][1]
-#####    disp = -disp_hist[maxpos][1]
-#####    lpf = lpf_hist[maxpos][1]
-#####    out.write(str(j_sides)+'    '+str(i_classification)+'    '+str(lpf)+'    '+str(load)+'    '+str(disp)+'    '+'\n')
-#####    out.close()
+# Look for the max value in a history output
+# TO BE FIXED. THE REFERENCE POINTS (rp1key, ho1key etc.) ARE NOT GENERIC.
+# Fetch maximum load, displacement and LPF for a riks analysis.
+# The method assumes that a) the the odb is located in the current directory
+def history_max(odb_name, step_name):
+    myOdb = odbAccess.openOdb(path=odb_name+'.odb')
+    RIKSstep = myOdb.steps[step_name]
+    rp1key = RIKSstep.historyRegions.keys()[1]
+    ho1key = RIKSstep.historyRegions[rp1key].historyOutputs.keys()[0]
+    rp2key = RIKSstep.historyRegions.keys()[2]
+    ho2key = RIKSstep.historyRegions[rp2key].historyOutputs.keys()[0]
+    asskey = RIKSstep.historyRegions.keys()[0]
+    hoasse = RIKSstep.historyRegions[asskey].historyOutputs.keys()[-1]
+    load_hist = RIKSstep.historyRegions[rp1key].historyOutputs[ho1key].data
+    disp_hist = RIKSstep.historyRegions[rp2key].historyOutputs[ho2key].data
+    lpf_hist = RIKSstep.historyRegions[asskey].historyOutputs[hoasse].data
+    maxpos = load_hist.index(max(load_hist,key=lambda x:x[1]))
+    load = load_hist[maxpos][1]
+    disp = -disp_hist[maxpos][1]
+    lpf = lpf_hist[maxpos][1]
+    out.write(str(j_sides)+'    '+str(i_classification)+'    '+str(lpf)+'    '+str(load)+'    '+str(disp)+'    '+'\n')
+    out.close()
 
