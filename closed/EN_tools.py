@@ -68,12 +68,56 @@ def sigma_cr_plate(thickness, width):
 
 
 ###### Cylindrical shells
+def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality, gamma_M1):
+    # Fabrication quality class acc. to table D2
+    if fab_quality == 1:
+        Q_factor = 40.
+    elif fab_quality == 2:
+        Q_factor = 25.
+    elif fab_quality == 3:
+        Q_factor = 16.
+    
+    # Critical meridinal stress, calculated on separate function
+    sigma_cr = sigma_x_Rcr(thickness, radius, length)
+    
+    # Shell slenderness
+    lmda = sqrt(f_y_k / sigma_cr[0])
+    delta_w_k = (1. / Q_factor) * sqrt(radius / thickness) * thickness
+    alpha = 0.62 / (1 + 1.91 * (delta_w_k / thickness) ** 1.44)
+    beta = 0.6
+    eta = 1.
+    if sigma_cr[1] is 'long':
+        # For long cylinders, a formula is suggested fo lambda, EC3-1-6 D1.2.2(4)
+        # Currently, the general form is used. to be fixed.
+        lmda_0 = 0.2
+        #lmda_0 = 0.2 + 0.1 * (sigma_E_M / sigma_E)
+    else:
+        lmda_0 = 0.2
+    
+    lmda_p = sqrt(alpha / (1. - beta))
+    
+    # Buckling reduction factor, chi
+    if lmda <= lmda_0:
+        chi = 1.
+    elif lmda < lmda_p:
+        chi = 1. - beta * ((lmda - lmda_0) / (lmda_p - lmda_0)) ** eta
+    else:
+        chi = alpha / (lmda ** 2)
+    
+    # Buckling stress
+    sigma_Rk = chi * f_y_k
+    sigma_Rd = sigma_Rk / gamma_M1
+    
+    # Return value
+    return sigma_Rd
+
+
 def N_cr_shell(thickness, radius, length):
     # Convert inputs to floats
     thickness, radius, length = float(thickness), float(radius), float(length)
     
     # Elastic critical load acc to EN3-1-6 Annex D
-    N_cr_shell = 2 * pi * radius * thickness * sigma_x_Rcr(thickness, radius, length)
+    N_cr_shell = 2 * pi * radius * thickness * sigma_x_Rcr(thickness, radius, length)[0]
     
     # Return value
     return N_cr_shell
@@ -103,4 +147,4 @@ def sigma_x_Rcr(thickness, radius, length):
     sigma_cr = 0.605 * 210000 * C_x * thickness / radius
     
     # Return value
-    return sigma_cr
+    return sigma_cr, length_category

@@ -321,6 +321,6 @@ def history_max(odb_name, step_name):
     load = load_hist[maxpos][1]
     disp = -disp_hist[maxpos][1]
     lpf = lpf_hist[maxpos][1]
-    out.write(str(j_sides)+'    '+str(i_classification)+'    '+str(lpf)+'    '+str(load)+'    '+str(disp)+'    '+'\n')
-    out.close()
+    odbAccess.closeOdb(myOdb)
+    return lpf
 

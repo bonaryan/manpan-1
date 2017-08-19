@@ -51,11 +51,21 @@ import sys
 import odbAccess
 from shutil import copyfile
 from EN_tools import N_pl_Rd as single_plate_Rd
+from EN_tools import sigma_x_Rd as shell_buckling_stress
 
-
-def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_name, r_circle=None, f_yield=None, n_eigen=None, u_max=None):
-    # Create a new model database. This will also start a new journal file for the current session.
-    Mdb()
+def cs_calculator(
+        n_sides = None, 
+        r_circle = None, 
+        p_classification = None, 
+        column_length = None,
+        f_yield = None, 
+        ):
+    
+    # Number of polygon sides
+    if n_sides is None:
+        n_sides = 6
+    else:
+        n_sides = int(n_sides)
     
     # Radius of the circle of perimeter equal to the polygon perimeter
     if r_circle is None:
@@ -63,34 +73,24 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     else:
         r_circle = float(r_circle)
     
+    # C / (t * epsilon) ratio
+    if p_classification is None:
+        p_classification = 42
+    else:
+        p_classification = float(p_classification)
+    
+    # Column length
+    if column_length is None:
+        column_length = 2 * pi * r_circle
+    else:
+        column_length = float(column_length)
+    
     # Yield stress
     if f_yield is None:
         f_yield = 381.
     else:
         f_yield = float(f_yield)
-    
-    # Number of requested eigenvalues
-    if n_eigen is None:
-        n_eigen = 1
-    else:
-        n_eigen = int(n_eigen)
-    
-    # Out-of-roundness imperfection class from table 8.1 of EC3-1-6 8.4.20
-    # class A => round_imp_class = 0.014
-    # class B => round_imp_class = 0.020
-    # class C => round_imp_class = 0.030
-    ### not working in current version, dimple imperfections are used instead
-    ##round_imp_class = 0.03
-    
-    # Dimple imperfection class
-    # class A => u_max = 0.006
-    # class B => u_max = 0.010
-    # class C => u_max = 0.016
-    if u_max is None:
-        u_max = 0.006
-    else:
-        u_max = float(u_max)
-    
+
     ## END INPUT ##
     
     ## GEOMETRY ##
@@ -101,17 +101,11 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     # Diameter
     diameter = 2 * r_circum
     
-    # Column length
-    column_length = 2 * pi * r_circle
-    
     # Central angles
     theta = 2 * pi / n_sides
     
     # Width of each side
     w_side = diameter * sin(pi / n_sides)
-    
-    ## Perimeter
-    #perimeter = n_sides * diameter * sin(theta / 2)
     
     # Epsilon for the material
     epsilon = sqrt(235. / f_yield)
@@ -119,21 +113,133 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     # Thickness for profile on class 3-4 limit (classification as plated, not tube)
     shell_thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
     
-    # Classification as tube
-    t_classification = 2 * r_circle / (shell_thickness * epsilon ** 2)
+    # Polar coordinate of ths polygon vertices on the cross-section plane
+    phii = []
+    for i_index in range(n_sides):
+        phii.append(i_index * theta)
+    
+    # Polygon corners coordinates
+    x_corners = r_circum * np.cos(phii)
+    y_corners = r_circum * np.sin(phii)
     
     # Axial compression resistance , Npl
     N_pl_Rd = n_sides * single_plate_Rd(shell_thickness, w_side, f_yield)
     
-    # CS PROPERTIES
+    # Compression resistance of equivalens cylindrical shell
+    fab_quality = 3
+    gamma_M1 = 1.
+    N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
+        shell_thickness, 
+        r_circle, 
+        column_length, 
+        f_yield, 
+        fab_quality, 
+        gamma_M1
+		)
+        
+    ## END GEOMETRY ##
     
-    # Calculate cross-sectional properties using the function from abq_toolset
-    #coord = [x_corners, y_corners]
-    #ends = [range(n_sides), range(1,n_sides)+[0], [shell_thickness]*(n_sides)]
-    #
-    #Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
+    # Return values
+    return r_circum, shell_thickness, epsilon, x_corners, y_corners, N_pl_Rd, N_b_Rd_shell
+
+
+def modeler(
+        n_sides = None, 
+        r_circle = None, 
+        p_classification = None, 
+        column_length = None,
+        n_of_waves = None, 
+        m_of_waves = None, 
+        u_max = None, 
+        f_yield = None, 
+        n_eigen = None, 
+        IDstring = None, 
+        proj_name = None, 
+        ):
     
+    # Number of polygon sides
+    if n_sides is None:
+        n_sides = 6
+    else:
+        n_sides = int(n_sides)
+    
+    # Radius of the circle of perimeter equal to the polygon perimeter
+    if r_circle is None:
+        r_circle = 250.
+    else:
+        r_circle = float(r_circle)
+    
+    # C / (t * epsilon) ratio
+    if p_classification is None:
+        p_classification = 42
+    else:
+        p_classification = float(p_classification)
+    
+    # Column length
+    if column_length is None:
+        column_length = 2 * pi * r_circle
+    else:
+        column_length = float(column_length)
+    
+    # Number of circumverential waves for imperfection
+    if n_of_waves is None:
+        n_of_waves = int(n_sides / 2)
+    else:
+        n_of_waves = int(n_of_waves)
+    
+    # Number of meridional waves for imperfection
+    if m_of_waves is None:
+        m_of_waves = int(n_sides / 2)
+    else:
+        m_of_waves = float(m_of_waves)
+    
+    # Amplitude of imperfection
+    if u_max is None:
+        u_max = 0.0016
+    else:
+        u_max = float(u_max)
+    
+    # Yield stress
+    if f_yield is None:
+        f_yield = 381.
+    else:
+        f_yield = float(f_yield)
+    
+    # Yield stress
+    if n_eigen is None:
+        n_eigen = 1
+    else:
+        n_eigen = int(n_eigen)
+    
+    # Yield stress
+    if IDstring is None:
+        IDstring = 'NA'
+    
+    # Yield stress
+    if proj_name is None:
+        proj_name = 'NA'
+    
+    # Create a new model database. This will also start a new journal file for the current session.
+    Mdb()
     ## MODEL ##
+    
+    # Calculate the cs geometric and resistance propertiesusinc cs_calculator
+    # and break the return tuple to separate variables
+    properties = cs_calculator(
+        n_sides = n_sides, 
+        r_circle = r_circle, 
+        p_classification = p_classification, 
+        column_length = column_length,
+        f_yield = f_yield
+        )
+
+    r_circum = properties[0]
+    shell_thickness = properties[1]
+    epsilon = properties[2]
+    x_corners = properties[3]
+    y_corners = properties[4]
+    N_pl_Rd = properties[5]
+    diameter = 2 * r_circum
     
     # Buckling model name
     bckl_model_name = 'bckl_model'
@@ -152,16 +258,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         name = 'cs_sketch',
         sheetSize = 2 * r_circum
         )
-    
-    # Polar coordinate of ths polygon vertices on the cross-section plane
-    phii = []
-    for i_index in range(n_sides):
-        phii.append(i_index * theta)
-    
-    # Polygon corners coordinates
-    x_corners = r_circum * np.cos(phii)
-    y_corners = r_circum * np.sin(phii)
-    
+
     # Draw lines sides on the sketch for the polygon
     for current_corner in range(n_sides):
         cs_sketch.Line(
@@ -278,6 +375,8 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         )
     
     # Create column end couplings
+    # Current coupling settings restrain the shell membrain rotation
+    # For free edge shell rotation, change to: ur1 = OFF, ur2 = OFF
     base_coupling = bckl_model.Coupling(
         controlPoint = rp_base_set,
         couplingType = KINEMATIC,
@@ -337,7 +436,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         distributionType = UNIFORM,
         fieldName = '',
         localCsys = None,
-        name = 'BC-2', 
+        name = 'fix_head', 
         region = rp_head_set,
         u1 = SET, u2 = SET, u3 = UNSET, ur1 = SET, ur2 = SET, ur3 = SET
         )
@@ -355,8 +454,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     l_gx_circum = pi * diameter / (2 * n_of_waves)
     
     # Meridional half wavelength
-    m_of_waves = 2 * n_of_waves
-    l_gx_meridi = column_length / m_of_waves
+    l_gx_meridi = column_length / (2 * m_of_waves)
     
     # l_gx is calculated as the mean value of the two wavelengths
     # (This requires justification)
@@ -376,7 +474,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
             crrnt_pt_angle = pi + atan(yi / xi)
         
         circum_wave = sin(n_of_waves * crrnt_pt_angle)
-        meridi_wave = sin(m_of_waves * pi * zi / column_length)
+        meridi_wave = sin(m_of_waves * 2 * pi * zi / column_length)
         
         r_assembly.editNode(
             nodes = column_instance.nodes[j],
@@ -412,7 +510,6 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         minArcInc=1e-07,
         totalArcLength=2
         )
-    
     
     # Rename the material
     riks_mdl.materials.changeKey(
@@ -467,6 +564,9 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
         sectionPoints = DEFAULT,
         variables = ('RF3', )
         )
+    
+    # Delete pre-existing history request: H-Output-1
+    riks_mdl.historyOutputRequests.delete(['H-Output-1'])
     
     # Apply concentrated load
     riks_mdl.ConcentratedForce(
@@ -589,7 +689,7 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     
     ## RIKS post processing
     ## Find max LPF
-    #LPF = xtr.history_max('RIKS-'+IDstring, step_name)
+    LPF = xtr.history_max('RIKS-'+IDstring, step_name)
     #
     ## Create and populate an output text with model information
     #
@@ -622,13 +722,28 @@ def single_closed_polygon(n_sides, p_classification, n_of_waves, IDstring, proj_
     #
     #out_file.close()
     
-    ## Write current model data on a collective catalog of a batch execution
+    # Compile a string with the model parameters and results
+    # This string is returned
     
-    out_file = open('./' + proj_name +'.dat', 'a')
-    #out_file.write("%03d %03d %03d %07.3f %07.3f %07.3f %07.3f %07.3f %010.3f %03d %05.3f %05.1f %05.1f %05.3f %010.3f %.3E %09.3f %09.3f %.3E %.3E "%(n_sides, m_of_waves, n_of_waves, 2 * r_circle, 2 * r_circum, w_side, perimeter, shell_thickness, Area, f_yield, epsilon, p_classification, t_classification, rho, A_eff, N_pl_Rd, sigma_cr_plate, sigma_x_Rcr, N_cr_plate, N_cr_shell))
-    out_file.write("%03d %03d"%(n_sides, p_classification))
-    out_file.write('\n')
-    out_file.close()
+    
+    #out_file = open('./' + proj_name +'.dat', 'a')
+    return_string = ("%03d %03d %03d %07.3f %07.3f %07.3f %03d %05.3f %05.1f %.3E %05.3f "
+        %(
+            n_sides,
+            m_of_waves,
+            n_of_waves,
+            2 * r_circle,
+            2 * r_circum,
+            shell_thickness,
+            f_yield,
+            epsilon,
+            p_classification,
+            N_pl_Rd,
+            LPF
+            )
+        )
+    return return_string
+
 
 def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield):
     # Create a new model database. This will also start a new journal file for the current session.
@@ -657,10 +772,7 @@ def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield)
     
     # Thickness for profile (classification as plated, not tube)
     r_circle = n_sides * shell_thickness * epsilon * p_classification / (2 * pi)
-    
-    # Classification as tube
-    t_classification = 2 * r_circle / (shell_thickness * epsilon ** 2)
-    
+        
     # List of angles of the polygon corner points to the x-axis
     phii = []
     for i_index in range(n_sides):
@@ -670,67 +782,13 @@ def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield)
     x_corners = r_circum * np.cos(phii)
     y_corners = r_circum * np.sin(phii)
     
-    # CS PROPERTIES
-    
-    # Calculate cross-sectional properties using the function from abq_toolset
-    coord = [x_corners, y_corners]
-    ends = [range(n_sides), range(1,n_sides)+[0], [shell_thickness]*(n_sides)]
-    
-    Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
-    
-    # DESIGN RESISTANCE
-    
-    # Elastic critical load acc. to EN3-1-5 Annex A
-    # Uniform compression is assumed (k_sigma = 4)
-    psi = 1.
-    kapa_sigma = 8.2 / (1.05 + psi)
-    sigma_cr_plate =  190000 * (shell_thickness / w_side) ** 2
-    N_cr_plate = Area * kapa_sigma * sigma_cr_plate
-    
-    # Elastic critical load acc. to EN3-1-6 Annex D
-    omega = column_length / sqrt(r_circle * shell_thickness)
-    if 1.7 <= omega and omega <= (r_circle / shell_thickness):
-        C_x = 1.
-        length_category = 'medium'
-    elif omega < 1.7:
-        C_x = 1.36 - 1.83 / omega + 2.07 / omega ** 2
-        length_category = 'short'
-    else:
-        # C_x_b is read on table D.1 of EN3-1-5 Annex D acc. to BCs
-        # BC1 - BC1 is used on the Abaqus models (both ends clamped, see EN3-1-5 table 5.1)
-        C_x_b = 6.
-        C_x_N = min((1 + 0.2 * (1 - 2 * omega * shell_thickness / r_circle) / C_x_b), 0.6)
-        C_x = C_x_N
-        length_category = 'long'
-    
-    # Calculate critical stress, eq. D.2 on EN3-1-5 D.1.2.1-5
-    sigma_x_Rcr = 0.605 * 210000 * C_x * shell_thickness / r_circle
-    
-    # Elastic critical load acc to EN3-1-6 Annex D
-    N_cr_shell = Area * sigma_x_Rcr
-    
-    # Aeff calculation.
-    # Reduction factor for the effective area of the profile acc. to EC3-1-5
-    
-    lambda_p = p_classification / (28.4 * sqrt(kapa_sigma))
-    if lambda_p > 0.673 and int(p_classification) > 42:
-        rho = (lambda_p - 0.055 * (3 + psi)) / lambda_p ** 2
-    else:
-        rho = 1.
-    
-    # Effective area
-    A_eff = rho * Area
-    
-    # Axial compression resistance , Npl
-    N_pl_Rd = A_eff * f_yield
-    
     # Create a variable for the model
     bckl_model = mdb.Model(name = 'bckl_model')
     
     # Create sketch
     cs_sketch = bckl_model.ConstrainedSketch(
         name = 'cs_sketch',
-        sheetSize = 200.0
+        sheetSize = 2 * r_circum
         )
     
     # Draw lines sides on the sketch for the polygon
