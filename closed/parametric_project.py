@@ -22,8 +22,8 @@ except:
 # A list of all possible combinations is stored in "combinations"
 combinations = list(
     product(
-        [6], 
-	    [30] 
+        range(6, 31), 
+	    range(27, 55)
 	    )
     )
 
@@ -50,7 +50,7 @@ for parameter in combinations:
         job_return = parametric_function(
         n_sides = parameter[0], 
         p_classification = parameter[1], 
-        )
+        f_yield = 381.        )
     except:
         print('Problem while executing job: '+ job_ID)
         print('Job is canceled and the folder is deleted. See log file (to be writen)')

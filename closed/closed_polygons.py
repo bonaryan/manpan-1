@@ -111,7 +111,7 @@ def cs_calculator(
     epsilon = sqrt(235. / f_yield)
     
     # Thickness for profile on class 3-4 limit (classification as plated, not tube)
-    shell_thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
+    thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
     
     # Polar coordinate of ths polygon vertices on the cross-section plane
     phii = []
@@ -123,13 +123,13 @@ def cs_calculator(
     y_corners = r_circum * np.sin(phii)
     
     # Axial compression resistance , Npl
-    N_pl_Rd = n_sides * single_plate_Rd(shell_thickness, w_side, f_yield)
+    N_pl_Rd = n_sides * single_plate_Rd(thickness, w_side, f_yield)
     
     # Compression resistance of equivalens cylindrical shell
     fab_quality = 3
     gamma_M1 = 1.
     N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
-        shell_thickness, 
+        thickness, 
         r_circle, 
         column_length, 
         f_yield, 
@@ -140,7 +140,7 @@ def cs_calculator(
     ## END GEOMETRY ##
     
     # Return values
-    return r_circum, shell_thickness, epsilon, x_corners, y_corners, N_pl_Rd, N_b_Rd_shell
+    return r_circum, thickness, epsilon, x_corners, y_corners, N_pl_Rd, N_b_Rd_shell
 
 
 def modeler(
