@@ -1,35 +1,3 @@
-# Abaqus python method creating a model of a closed polygon with initial imperfections
-# Current version #
-# Version 8
-#
-# Version history #
-#
-# Version 7
-# 15/08/2017
-# Corrected sigma_cr_shell. Some EN1993-1-6 formulas were written wrong
-#
-# Version 6
-# 13/07/2017
-# Added a second function aiding the design of the test specimens
-# The new function accepts n_sides, thickness, class, fy and designs a specimen
-#
-# Version 5
-# 05/06/2017
-# Modified to run a GNIA
-#
-# Version4
-# The imperfection amplitude is calculated as dimple imperfections
-# acc. to EC3-1-6
-#
-# Version 3
-# 31/05/2017
-# Accepts number of meridional half-waves instead of the inperfection angle.
-#
-# Version 2
-# 30/05/2017
-# This version accepts theta_yoshi instead of "number_of_twists", which is the angle
-# of the Yoshimura pattern to the meridians, 0 <theta_yosi > pi/2
-
 from part import *
 from material import *
 from section import *
@@ -52,34 +20,54 @@ import odbAccess
 from shutil import copyfile
 from EN_tools import N_pl_Rd as single_plate_Rd
 from EN_tools import sigma_x_Rd as shell_buckling_stress
+from closed_polygons import cs_calculator
 
-def cs_calculator(
-        n_sides = None, 
-        r_circle = None, 
-        p_classification = None, 
+
+def polygon_2_cylinder(n_sides, r_circle, p_classification, f_yield):
+    ## MODEL ##
+    
+    # Calculate the cs geometric and resistance propertiesusinc cs_calculator
+    # and break the return tuple to separate variables
+    properties = cs_calculator(
+        n_sides = n_sides, 
+        r_circle = r_circle, 
+        p_classification = p_classification, 
+        f_yield = f_yield
+        )
+    
+    shell_thickness = properties[1]
+    N_b_sh = properties[3]
+    
+    # Return values
+    return shell_thickness
+
+
+def modeler(
+        r_circle = None,
+        shell_thickness = None,
         column_length = None,
-        f_yield = None, 
+        f_yield = None,
+        n_eigen = None,
+        n_of_waves = None,
+        m_of_waves = None,
+        u_max = None,
+        IDstring = None, 
+        proj_name = None, 
         ):
     
-    # Number of polygon sides
-    if n_sides is None:
-        n_sides = 6
-    else:
-        n_sides = int(n_sides)
-    
-    # Radius of the circle of perimeter equal to the polygon perimeter
+    # Radius
     if r_circle is None:
         r_circle = 250.
     else:
         r_circle = float(r_circle)
     
-    # C / (t * epsilon) ratio
-    if p_classification is None:
-        p_classification = 42
+    # Thickness
+    if shell_thickness is None:
+        shell_thickness = 1.
     else:
-        p_classification = float(p_classification)
+        shell_thickness = float(shell_thickness)
     
-    # Column length
+    # Length
     if column_length is None:
         column_length = 2 * pi * r_circle
     else:
@@ -90,126 +78,30 @@ def cs_calculator(
         f_yield = 381.
     else:
         f_yield = float(f_yield)
-
-    ## END INPUT ##
     
-    ## GEOMETRY ##
-    
-    # Radius of the polygon's circumscribed circle
-    r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
-    
-    # Diameter
-    diameter = 2 * r_circum
-    
-    # Central angles
-    theta = 2 * pi / n_sides
-    
-    # Width of each side
-    w_side = diameter * sin(pi / n_sides)
-    
-    # Epsilon for the material
-    epsilon = sqrt(235. / f_yield)
-    
-    # Thickness for profile on class 3-4 limit (classification as plated, not tube)
-    thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
-    
-    # Polar coordinate of ths polygon vertices on the cross-section plane
-    phii = []
-    for i_index in range(n_sides):
-        phii.append(i_index * theta)
-    
-    # Polygon corners coordinates
-    x_corners = r_circum * np.cos(phii)
-    y_corners = r_circum * np.sin(phii)
-    
-    # Axial compression resistance , Npl
-    N_pl_Rd = n_sides * single_plate_Rd(thickness, w_side, f_yield)
-    
-    # Compression resistance of equivalens cylindrical shell
-    fab_quality = 3
-    gamma_M1 = 1.
-    N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
-        thickness, 
-        r_circle, 
-        column_length, 
-        f_yield, 
-        fab_quality, 
-        gamma_M1
-		)
-        
-    ## END GEOMETRY ##
-    
-    # Return values
-    return r_circum, thickness, N_pl_Rd, N_b_Rd_shell, x_corners, y_corners
-
-
-def modeler(
-        n_sides = None, 
-        r_circle = None, 
-        p_classification = None, 
-        column_length = None,
-        n_of_waves = None, 
-        m_of_waves = None, 
-        u_max = None, 
-        f_yield = None, 
-        n_eigen = None, 
-        IDstring = None, 
-        proj_name = None, 
-        ):
-    
-    # Number of polygon sides
-    if n_sides is None:
-        n_sides = 6
+    # Number of eigenvalues
+    if n_eigen is None:
+        n_eigen = 1
     else:
-        n_sides = int(n_sides)
-    
-    # Radius of the circle of perimeter equal to the polygon perimeter
-    if r_circle is None:
-        r_circle = 250.
-    else:
-        r_circle = float(r_circle)
-    
-    # C / (t * epsilon) ratio
-    if p_classification is None:
-        p_classification = 42
-    else:
-        p_classification = float(p_classification)
-    
-    # Column length
-    if column_length is None:
-        column_length = 2 * pi * r_circle
-    else:
-        column_length = float(column_length)
+        n_eigen = int(n_eigen)
     
     # Number of circumverential waves for imperfection
     if n_of_waves is None:
-        n_of_waves = int(n_sides / 2)
+        n_of_waves = 2
     else:
         n_of_waves = int(n_of_waves)
     
     # Number of meridional waves for imperfection
     if m_of_waves is None:
-        m_of_waves = int(n_sides / 2)
+        m_of_waves = 2
     else:
         m_of_waves = int(m_of_waves)
     
     # Amplitude of imperfection
     if u_max is None:
-        u_max = 0.0016
+        u_max = 0.016
     else:
         u_max = float(u_max)
-    
-    # Yield stress
-    if f_yield is None:
-        f_yield = 381.
-    else:
-        f_yield = float(f_yield)
-    
-    # Number of eigenvalues requested
-    if n_eigen is None:
-        n_eigen = 1
-    else:
-        n_eigen = int(n_eigen)
     
     # ID of the current job
     if IDstring is None:
@@ -219,32 +111,26 @@ def modeler(
     if proj_name is None:
         proj_name = 'NA'
     
+    # Calculate the cylinder's resistance to meridional compression
+    # Using the functions of EN_tools.py
+    N_shell_Rd = 2 * pi * r_circle * shell_thickness * shell_buckling_stress(
+        shell_thickness,
+        r_circle,
+        column_length,
+        f_yield,
+        3,
+        1.
+        )
+    
     # Create a new model database. This will also start a new journal file for the current session.
     Mdb()
     ## MODEL ##
-    
-    # Calculate the cs geometric and resistance propertiesusinc cs_calculator
-    # and break the return tuple to separate variables
-    properties = cs_calculator(
-        n_sides = n_sides, 
-        r_circle = r_circle, 
-        p_classification = p_classification, 
-        column_length = column_length,
-        f_yield = f_yield
-        )
-
-    r_circum = properties[0]
-    shell_thickness = properties[1]
-    N_pl_Rd = properties[2]
-    N_b_sh = properties[3]
-    x_corners = properties[4]
-    y_corners = properties[5]
     
     # Epsilon for the material
     epsilon = sqrt(235. / f_yield)
     
     # Diameter of the circumferential circle
-    diameter = 2 * r_circum
+    diameter = 2 * r_circle
     
     # Buckling model name
     bckl_model_name = 'bckl_model'
@@ -261,26 +147,15 @@ def modeler(
     # Create sketch
     cs_sketch = bckl_model.ConstrainedSketch(
         name = 'cs_sketch',
-        sheetSize = 2 * r_circum
+        sheetSize = 2 * r_circle
+        )
+    
+    # Draw the cs circle
+    cs_sketch.CircleByCenterPerimeter(
+        center=(0.0, 0.0),
+        point1=(r_circle, 0.0)
         )
 
-    # Draw lines sides on the sketch for the polygon
-    for current_corner in range(n_sides):
-        cs_sketch.Line(
-            point1 = (x_corners[current_corner], y_corners[current_corner]),
-            point2 = (x_corners[current_corner - 1], y_corners[current_corner - 1])
-            )
-    
-    # Fillet corners
-    for current_side in range(n_sides):
-        cs_sketch.FilletByRadius(
-            curve1 = cs_sketch.geometry.items()[current_side-1][1],
-            curve2 = cs_sketch.geometry.items()[current_side][1],
-            nearPoint1 = (0, 0),
-            nearPoint2 = (0, 0),
-            radius = 3 * shell_thickness
-            )
-    
     # Create the part
     p_part = bckl_model.Part(
         dimensionality = THREE_D,
@@ -331,7 +206,7 @@ def modeler(
         thicknessAssignment = FROM_SECTION
         )
     
-    # Seed the part according to the shell thickness
+    # Seed the part according to the shell diameter
     p_part.seedPart(
         deviationFactor = 0.1, 
         minSizeFactor = 0.1,
@@ -511,7 +386,7 @@ def modeler(
         name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=3,
+        maxNumInc=1,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -577,7 +452,7 @@ def modeler(
     
     # Apply concentrated load
     riks_mdl.ConcentratedForce(
-        cf3 = -N_pl_Rd,
+        cf3 = -N_shell_Rd,
         createStepName = step_name, 
         distributionType = UNIFORM,
         field = '',
@@ -693,126 +568,37 @@ def modeler(
     #    current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
     #    eigenvalues = eigenvalues + (current_eigen, )
     #    eigen_string = eigen_string + "%.3E "%(current_eigen)
-    
+    #
     ## RIKS post processing
     ## Find max LPF
     LPF = xtr.history_max('RIKS-'+IDstring, step_name)
-    #
-    ## Create and populate an output text with model information
-    #
-    #out_file = open('./'+IDstring+'_info.dat', 'w')
-    #out_file.write('\n-GEOMETRIC CHARACTERISTICS\n')
-    #out_file.write('Number of corners:....................................................... '+str(n_sides)+'\n')
-    #out_file.write('Diameter of equal perimeter circle:...................................... '+str(2 * r_circle)+' [mm]\n')
-    #out_file.write('Diameter of the circumscribed circle:.................................... '+str(2 * r_circum)+' [mm]\n')
-    #out_file.write('Width of each side:...................................................... '+str(w_side)+' [mm]\n')
-    #out_file.write('Perimeter:............................................................... '+str(perimeter)+' [mm]\n')
-    #out_file.write('Total length:............................................................ '+str(column_length/1000)+' [m]\n')
-    #out_file.write('Profile thickness:....................................................... '+str(shell_thickness)+' [mm]\n')
-    #out_file.write('Bending radius for the creases of the polygon (midline):................. '+str(3 * shell_thickness)+' [mm]\n')
-    #out_file.write('Cross-sectional Area:.................................................... '+str(Area)+' [mm^2]\n')
-    #out_file.write('\n-STRUCTURAL CHARACTERISTICS'+'\n')
-    #out_file.write('Yield strength:.......................................................... '+str(f_yield)+' [MPa]\n')
-    #out_file.write('epsilon:................................................................. '+str(epsilon)+'\n')
-    #out_file.write('Cross-section classification (as plate):................................. '+str(p_classification)+'\n')
-    #out_file.write('Cross-section classification (as tube):.................................. '+str(t_classification)+'\n')
-    #out_file.write('Class 4 reduction factor:................................................ '+str(rho)+'\n')
-    #out_file.write('Effective area:.......................................................... '+str(A_eff)+' [mm^2]\n')
-    #out_file.write('Plate critical stress:................................................... '+str(sigma_cr_plate)+' [MPa]\n')
-    #out_file.write('Shell critical stress:................................................... '+str(sigma_x_Rcr)+' [MPa]\n')
-    #out_file.write('Plate critical load:..................................................... '+str(N_cr_plate/1000.)+' [kN]\n')
-    #out_file.write('Shell critical load:..................................................... '+str(N_cr_shell/1000.)+' [kN]\n')
-    #out_file.write('Plastic resistance, N_pl_rd:............................................. '+str(N_pl_Rd/1000.)+' [kN]\n')
-    #out_file.write('\n-RESULTS\n')
-    ##for J_eigenvalues in range(1, n_eigen + 1):
-    ##    out_file.write('Eigen value '+"%02d"%J_eigenvalues+':......................................................... '+str(eigenvalues[J_eigenvalues-1]/1000)+' [kN]\n')
-    #
-    #out_file.close()
+    
+    # Create and populate an output text with model information
+    
+    out_file = open('./'+IDstring+'_info.dat', 'w')
+    out_file.write('\n-GEOMETRIC CHARACTERISTICS\n')
+    out_file.write('Diameter of equal perimeter circle:...................................... '+str(2 * r_circle)+' [mm]\n')
+    out_file.write('Total length:............................................................ '+str(column_length/1000)+' [m]\n')
+    out_file.write('Profile thickness:....................................................... '+str(shell_thickness)+' [mm]\n')
+    out_file.write('\n-STRUCTURAL CHARACTERISTICS'+'\n')
+    out_file.write('Yield strength:.......................................................... '+str(f_yield)+' [MPa]\n')
+    out_file.write('Resistance, N_shell_Rd:............................................. '+str(N_shell_Rd/1000.)+' [kN]\n')
+    out_file.write('\n-RESULTS\n')
+    out_file.write('Load proportionality factor:............................................. '+str(N_shell_Rd/1000.)+' [kN]\n')
+    out_file.close()
     
     # Compile a string with the model parameters and results
-    # This string is returned
-    
-    
-    #out_file = open('./' + proj_name +'.dat', 'a')
-    return_string = ("%03d %03d %03d %07.3f %07.3f %07.3f %03d %05.3f %05.1f %.3E %05.3f "
+    return_string = ("%03d %03d %07.3f %07.3f %03d %.3E %05.3f "
         %(
-            n_sides,
             m_of_waves,
             n_of_waves,
-            2 * r_circle,
-            2 * r_circum,
+            diameter,
             shell_thickness,
             f_yield,
-            epsilon,
-            p_classification,
-            N_pl_Rd,
-            N_b_sh,
+            N_shell_Rd,
             LPF
             )
         )
+    
+    # Return the results
     return return_string
-
-
-def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield):
-    # Create a new model database. This will also start a new journal file for the current session.
-    Mdb()
-    
-    # Radius of the polygons circumscribed
-    r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
-    
-    # Diameter
-    diameter = 2 * r_circum
-    
-    # Column length
-    column_length = 2 * pi * r_circle
-    
-    # Central angles
-    theta = 2 * pi / n_sides
-    
-    # Width of each side
-    w_side = diameter * sin(pi / n_sides)
-    
-    # Perimeter
-    perimeter = n_sides * diameter * sin(theta / 2)
-    
-    # Epsilon for the material
-    epsilon = sqrt(235. / f_yield)
-    
-    # Thickness for profile (classification as plated, not tube)
-    r_circle = n_sides * shell_thickness * epsilon * p_classification / (2 * pi)
-        
-    # List of angles of the polygon corner points to the x-axis
-    phii = []
-    for i_index in range(n_sides):
-        phii.append(i_index * theta)
-    
-    # Polygon corners coordinates
-    x_corners = r_circum * np.cos(phii)
-    y_corners = r_circum * np.sin(phii)
-    
-    # Create a variable for the model
-    bckl_model = mdb.Model(name = 'bckl_model')
-    
-    # Create sketch
-    cs_sketch = bckl_model.ConstrainedSketch(
-        name = 'cs_sketch',
-        sheetSize = 2 * r_circum
-        )
-    
-    # Draw lines sides on the sketch for the polygon
-    for current_corner in range(n_sides):
-        cs_sketch.Line(
-            point1 = (x_corners[current_corner], y_corners[current_corner]),
-            point2 = (x_corners[current_corner - 1], y_corners[current_corner - 1])
-            )
-    
-    for current_side in range(n_sides):
-        cs_sketch.FilletByRadius(
-            curve1 = cs_sketch.geometry.items()[current_side-1][1],
-            curve2 = cs_sketch.geometry.items()[current_side][1],
-            nearPoint1 = (0, 0),
-            nearPoint2 = (0, 0),
-            radius = 3 * shell_thickness
-            )
-    
-    
