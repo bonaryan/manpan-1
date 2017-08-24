@@ -53,94 +53,6 @@ from shutil import copyfile
 from EN_tools import N_pl_Rd as single_plate_Rd
 from EN_tools import sigma_x_Rd as shell_buckling_stress
 
-def cs_calculator(
-        n_sides = None, 
-        r_circle = None, 
-        p_classification = None, 
-        column_length = None,
-        f_yield = None, 
-        ):
-    
-    # Number of polygon sides
-    if n_sides is None:
-        n_sides = 6
-    else:
-        n_sides = int(n_sides)
-    
-    # Radius of the circle of perimeter equal to the polygon perimeter
-    if r_circle is None:
-        r_circle = 250.
-    else:
-        r_circle = float(r_circle)
-    
-    # C / (t * epsilon) ratio
-    if p_classification is None:
-        p_classification = 42
-    else:
-        p_classification = float(p_classification)
-    
-    # Column length
-    if column_length is None:
-        column_length = 2 * pi * r_circle
-    else:
-        column_length = float(column_length)
-    
-    # Yield stress
-    if f_yield is None:
-        f_yield = 381.
-    else:
-        f_yield = float(f_yield)
-
-    ## END INPUT ##
-    
-    ## GEOMETRY ##
-    
-    # Radius of the polygon's circumscribed circle
-    r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
-    
-    # Diameter
-    diameter = 2 * r_circum
-    
-    # Central angles
-    theta = 2 * pi / n_sides
-    
-    # Width of each side
-    w_side = diameter * sin(pi / n_sides)
-    
-    # Epsilon for the material
-    epsilon = sqrt(235. / f_yield)
-    
-    # Thickness for profile on class 3-4 limit (classification as plated, not tube)
-    thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
-    
-    # Polar coordinate of ths polygon vertices on the cross-section plane
-    phii = []
-    for i_index in range(n_sides):
-        phii.append(i_index * theta)
-    
-    # Polygon corners coordinates
-    x_corners = r_circum * np.cos(phii)
-    y_corners = r_circum * np.sin(phii)
-    
-    # Axial compression resistance , Npl
-    N_pl_Rd = n_sides * single_plate_Rd(thickness, w_side, f_yield)
-    
-    # Compression resistance of equivalens cylindrical shell
-    fab_quality = 3
-    gamma_M1 = 1.
-    N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
-        thickness, 
-        r_circle, 
-        column_length, 
-        f_yield, 
-        fab_quality, 
-        gamma_M1
-		)
-        
-    ## END GEOMETRY ##
-    
-    # Return values
-    return r_circum, thickness, N_pl_Rd, N_b_Rd_shell, x_corners, y_corners
 
 
 def modeler(
@@ -753,18 +665,90 @@ def modeler(
     return return_string
 
 
-def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield):
-    # Create a new model database. This will also start a new journal file for the current session.
-    Mdb()
+def class_2_radius(
+        n_sides = None, 
+        p_classification = None, 
+        thickness = None, 
+        f_yield = None, 
+        ):
+    
+    # Number of polygon sides
+    if n_sides is None:
+        n_sides = 6
+    else:
+        n_sides = int(n_sides)
+    
+    # C / (t * epsilon) ratio
+    if p_classification is None:
+        p_classification = 42
+    else:
+        p_classification = float(p_classification)
     
     # Radius of the polygons circumscribed
+    # Yield stress
+    if f_yield is None:
+        f_yield = 381.
+    else:
+        f_yield = float(f_yield)
+    
+    # Epsilon for the material
+    epsilon = sqrt(235. / f_yield)
+    
+    r_circle = n_sides * thickness * epsilon * p_classification / (2 * pi)
+    
+    # Return radius of the cylinder of equal perimeter
+    return r_circle
+
+
+def cs_calculator(
+        n_sides = None, 
+        r_circle = None, 
+        p_classification = None, 
+        column_length = None,
+        f_yield = None, 
+        ):
+    
+    # Number of polygon sides
+    if n_sides is None:
+        n_sides = 6
+    else:
+        n_sides = int(n_sides)
+    
+    if r_circle is None:
+        r_circle = 250.
+    else:
+        r_circle = float(r_circle)
+    
+    # C / (t * epsilon) ratio
+    if p_classification is None:
+        p_classification = 42
+    else:
+        p_classification = float(p_classification)
+    
+    # Column length
+    if column_length is None:
+        column_length = 2 * pi * r_circle
+    else:
+        column_length = float(column_length)
+    
+    # Yield stress
+    if f_yield is None:
+        f_yield = 381.
+    else:
+        f_yield = float(f_yield)
+
+    ## END INPUT ##
+    
+    ## GEOMETRY ##
+    
+    # Epsilon for the material
+    epsilon = sqrt(235. / f_yield)
+    
+    # Radius of the polygon's circumscribed circle
     r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
     
     # Diameter
     diameter = 2 * r_circum
-    
-    # Column length
-    column_length = 2 * pi * r_circle
     
     # Central angles
     theta = 2 * pi / n_sides
@@ -772,16 +756,9 @@ def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield)
     # Width of each side
     w_side = diameter * sin(pi / n_sides)
     
-    # Perimeter
-    perimeter = n_sides * diameter * sin(theta / 2)
+    thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
     
-    # Epsilon for the material
-    epsilon = sqrt(235. / f_yield)
-    
-    # Thickness for profile (classification as plated, not tube)
-    r_circle = n_sides * shell_thickness * epsilon * p_classification / (2 * pi)
-        
-    # List of angles of the polygon corner points to the x-axis
+    # Polar coordinate of ths polygon vertices on the cross-section plane
     phii = []
     for i_index in range(n_sides):
         phii.append(i_index * theta)
@@ -790,29 +767,22 @@ def closed_polygon_specimen(n_sides, p_classification, shell_thickness, f_yield)
     x_corners = r_circum * np.cos(phii)
     y_corners = r_circum * np.sin(phii)
     
-    # Create a variable for the model
-    bckl_model = mdb.Model(name = 'bckl_model')
+    # Axial compression resistance , Npl
+    N_pl_Rd = n_sides * single_plate_Rd(thickness, w_side, f_yield)
     
-    # Create sketch
-    cs_sketch = bckl_model.ConstrainedSketch(
-        name = 'cs_sketch',
-        sheetSize = 2 * r_circum
-        )
+    # Compression resistance of equivalens cylindrical shell
+    fab_quality = 3
+    gamma_M1 = 1.
+    N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
+        thickness, 
+        r_circle, 
+        column_length, 
+        f_yield, 
+        fab_quality, 
+        gamma_M1
+		)
+        
+    ## END GEOMETRY ##
     
-    # Draw lines sides on the sketch for the polygon
-    for current_corner in range(n_sides):
-        cs_sketch.Line(
-            point1 = (x_corners[current_corner], y_corners[current_corner]),
-            point2 = (x_corners[current_corner - 1], y_corners[current_corner - 1])
-            )
-    
-    for current_side in range(n_sides):
-        cs_sketch.FilletByRadius(
-            curve1 = cs_sketch.geometry.items()[current_side-1][1],
-            curve2 = cs_sketch.geometry.items()[current_side][1],
-            nearPoint1 = (0, 0),
-            nearPoint2 = (0, 0),
-            radius = 3 * shell_thickness
-            )
-    
-    
+    # Return values
+    return r_circum, thickness, N_pl_Rd, N_b_Rd_shell, x_corners, y_corners

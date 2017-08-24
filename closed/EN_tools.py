@@ -1,6 +1,7 @@
 from math import sqrt, pi
 
-###### Simply supported plate
+###### Simply supported plate ######
+
 def N_pl_Rd(thickness, width, f_yield, psi=None):
     # Convert inputs to floats
     thickness, width, f_yield = float(thickness), float(width), float(f_yield)
@@ -67,7 +68,8 @@ def sigma_cr_plate(thickness, width):
     return sigma_cr
 
 
-###### Cylindrical shells
+###### Cylindrical shells ######
+
 def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality, gamma_M1):
     # Fabrication quality class acc. to table D2
     if fab_quality == 1:
@@ -148,3 +150,72 @@ def sigma_x_Rcr(thickness, radius, length):
     
     # Return value
     return sigma_cr, length_category
+
+
+###### Flexural buckling ######
+
+def lmbda(
+    length,
+    area,
+    I_2,
+    kapa_BC = None,
+    E_modulus = None,
+    f_yield = None
+    ):
+    
+    # default values
+    if kapa_BC is None:
+        kapa_BC = 1.
+    else:
+        kapa_BC = float(kapa_BC)
+    
+    if E_modulus is None:
+        E_modulus = 210000.
+    else:
+        E_modulus = float(E_modulus)
+    
+    if f_yield is None:
+        f_yield = 380.
+    else:
+        f_yield = float(f_yield)
+    
+    # Calculate Euler's critical load
+    N_cr = N_cr_flex(
+        length,
+        I_2,
+        E_modulus = E_modulus,
+        kapa_BC = kapa_BC
+        )
+    
+    # Flexural slenderness EN3-1-1 6.3.1.3 (1)
+    lmbda = sqrt(area * f_yield / N_cr)
+    
+    # Return the result
+    return lmbda
+
+
+def N_cr_flex(
+    length,
+    I_2,
+    E_modulus = None,
+    kapa_BC = None
+    ):
+    
+    # default values
+    if kapa_BC is None:
+        kapa_BC = 1.
+    else:
+        kapa_BC = float(kapa_BC)
+    
+    if E_modulus is None:
+        E_modulus = 210000.
+    else:
+        E_modulus = float(E_modulus)
+    
+    # Euler's critical load
+    N_cr_flex = (pi ** 2) * E_modulus * I_2 / (kapa_BC * length) ** 2
+    
+    # Return the result
+    return N_cr_flex
+
+
