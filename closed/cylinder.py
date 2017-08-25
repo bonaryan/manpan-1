@@ -602,3 +602,16 @@ def modeler(
     
     # Return the results
     return return_string
+
+
+def fabclass_2_umax(fab_class):
+    # Assign imperfection amplitude, u_max acc. to the fabrication class
+    if fab_class is 'fcA':
+        u_max = 0.006
+    elif fab_class is 'fcB':
+        u_max = 0.010
+    else:
+        u_max = 0.016
+    
+    # Return values
+    return u_max

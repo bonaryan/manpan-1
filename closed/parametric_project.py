@@ -8,7 +8,7 @@ from os import path
 import closed_polygons
 
 # Give a project name
-prj_name = 'specimens'
+prj_name = 'imp-I'
 
 # Remove folders after execution? (keep only the output file)
 remove_folders = False
@@ -19,8 +19,10 @@ remove_folders = False
 # A list of all possible combinations is stored in "combinations"
 combinations = list(
     product(
-        [12, 18, 24], 
-        [30, 40, 50]
+        [12], 
+        [42],
+        ['fcA'],
+        [2, 4]
         )
     )
 
@@ -31,7 +33,8 @@ out_file = open('./'+prj_name+'_info.dat', 'a')
 
 # Loop through the combinations of the given input values
 for parameter in combinations:
-    job_ID = (''.join("%03d-"%e for e in parameter) + prj_name)
+    #job_ID = (''.join("%03d-"%e for e in parameter) + prj_name)
+    job_ID = ("%03d-%03d-"%(parameter[0], parameter[1]) + parameter[2] + '-' + "%03d-"%parameter[3] + prj_name)
     job_ID = job_ID.translate(None, '.')
     if (path.isdir("./" + job_ID)):
         print("Job already exists: A directory with the same name"+job_ID+" exists in the cwd")
@@ -45,22 +48,16 @@ for parameter in combinations:
     
     # The function to be run for the full factorial parametric is called here
     print('Running job: ' + job_ID)
+    
     try:
-        radius = closed_polygons.class_2_radius(
-            n_sides = parameter[0],
-            p_classification = parameter[1],
-            thickness = 3,
-            f_yield = 420.
-            )
-        
         job_return = closed_polygons.modeler(
             n_sides = parameter[0], 
-            r_circle = radius, 
             p_classification = parameter[1], 
-            n_of_waves = parameter[0] / 2, 
-            m_of_waves = parameter[0] / 2, 
-            u_max = 0.00667, 
-            f_yield = 420., 
+            n_of_waves = parameter[0] / parameter[3], 
+            m_of_waves = parameter[0] / parameter[3], 
+            fab_class = parameter[2], 
+            f_yield = 760, 
+            nominal_fy = 'S650',
             IDstring = job_ID, 
             proj_name = prj_name, 
             )
@@ -74,8 +71,7 @@ for parameter in combinations:
         
     except:
         print('Problem while executing job: '+ job_ID)
-        print('Job is canceled and the folder is deleted. See log file (to be writen)')
-        Mdb()
+        print('Job is canceled. See log file (no log file yet)')
         os.chdir('../')
     
     # Remove job's folder (only the output information is kept)

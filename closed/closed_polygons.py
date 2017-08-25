@@ -62,8 +62,9 @@ def modeler(
         column_length = None,
         n_of_waves = None, 
         m_of_waves = None, 
-        u_max = None, 
+        fab_class = None, 
         f_yield = None, 
+        nominal_fy = None,
         n_eigen = None, 
         IDstring = None, 
         proj_name = None, 
@@ -106,16 +107,22 @@ def modeler(
         m_of_waves = int(m_of_waves)
     
     # Amplitude of imperfection
-    if u_max is None:
-        u_max = 0.0016
-    else:
-        u_max = float(u_max)
+    if fab_class is None:
+        fab_class = 'fcA'
+    elif fab_class is not ('fcA' or 'fcB' or 'fcB'):
+        print('Invalid fabrication class input. Choose between \'fcA\', \'fcB\' and \'fcC\' ')
     
     # Yield stress
     if f_yield is None:
         f_yield = 381.
     else:
         f_yield = float(f_yield)
+    
+    # Nominal yield strength (string)
+    if nominal_fy is None:
+        nominal_fy = 'S355'
+    else:
+        nominal_fy = str(nominal_fy)
     
     # Number of eigenvalues requested
     if n_eigen is None:
@@ -142,7 +149,8 @@ def modeler(
         r_circle = r_circle, 
         p_classification = p_classification, 
         column_length = column_length,
-        f_yield = f_yield
+        f_yield = f_yield,
+        fab_class = fab_class,
         )
 
     r_circum = properties[0]
@@ -377,6 +385,9 @@ def modeler(
     # (This requires justification)
     l_gx = min(l_gx_circum, l_gx_meridi)
     
+    # Convert fabrication class to u_max
+    u_max = fabclass_2_umax(fab_class)
+    
     #theta_yoshi = (m_of_waves * pi * 2 * r_circle) / (n_of_waves * column_length)
     
     #n_twists = column_length * tan(theta_yoshi) / (2 * pi * r_circle)
@@ -423,7 +434,7 @@ def modeler(
         name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=3,
+        maxNumInc=13,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -433,27 +444,16 @@ def modeler(
     # Rename the material
     riks_mdl.materials.changeKey(
         fromName='elastic',
-        toName='optim355')
+        toName=nominal_fy)
     
     # Change to plastic material, optim355
-    riks_mdl.materials['optim355'].Plastic(
-        table=(
-            (381.1, 0.0),
-            (391.2, 0.0053),
-            (404.8, 0.0197),
-            (418.0, 0.0228),
-            (444.2, 0.0310),
-            (499.8, 0.0503),
-            (539.1, 0.0764),
-            (562.1, 0.1009),
-            (584.6, 0.1221),
-            (594.4, 0.1394)
-            )
+    riks_mdl.materials[nominal_fy].Plastic(
+        table= xtr.plastic_table(nominal = nominal_fy)
         )
     
     # Change the section material name accordingly
     riks_mdl.sections['shell_section'].setValues(
-        material='optim355',
+        material=nominal_fy,
         )
     
     # Create a set to act as a control point for the solver killer subroutine
@@ -684,7 +684,12 @@ def class_2_radius(
     else:
         p_classification = float(p_classification)
     
-    # Radius of the polygons circumscribed
+    # Thickness
+    if thickness is None:
+        thickness = 2 * pi * r_circle
+    else:
+        thickness = float(thickness)
+    
     # Yield stress
     if f_yield is None:
         f_yield = 381.
@@ -694,6 +699,7 @@ def class_2_radius(
     # Epsilon for the material
     epsilon = sqrt(235. / f_yield)
     
+    # Radius of the equal perimeter cylinder
     r_circle = n_sides * thickness * epsilon * p_classification / (2 * pi)
     
     # Return radius of the cylinder of equal perimeter
@@ -705,7 +711,8 @@ def cs_calculator(
         r_circle = None, 
         p_classification = None, 
         column_length = None,
-        f_yield = None, 
+        f_yield = None,
+        fab_class = None
         ):
     
     # Number of polygon sides
@@ -714,6 +721,7 @@ def cs_calculator(
     else:
         n_sides = int(n_sides)
     
+    # Radius of the equal perimeter cylinder
     if r_circle is None:
         r_circle = 250.
     else:
@@ -721,7 +729,7 @@ def cs_calculator(
     
     # C / (t * epsilon) ratio
     if p_classification is None:
-        p_classification = 42
+        p_classification = 42.
     else:
         p_classification = float(p_classification)
     
@@ -736,6 +744,10 @@ def cs_calculator(
         f_yield = 381.
     else:
         f_yield = float(f_yield)
+
+    # Fabrication class
+    if fab_class is None:
+        fab_class = 'fcA'
 
     ## END INPUT ##
     
@@ -756,6 +768,7 @@ def cs_calculator(
     # Width of each side
     w_side = diameter * sin(pi / n_sides)
     
+    # Thickness the given class (classification as plated, not tube)
     thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
     
     # Polar coordinate of ths polygon vertices on the cross-section plane
@@ -771,18 +784,29 @@ def cs_calculator(
     N_pl_Rd = n_sides * single_plate_Rd(thickness, w_side, f_yield)
     
     # Compression resistance of equivalens cylindrical shell
-    fab_quality = 3
-    gamma_M1 = 1.
     N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
         thickness, 
         r_circle, 
         column_length, 
         f_yield, 
-        fab_quality, 
-        gamma_M1
+        fab_quality = fab_class, 
+        gamma_M1 = 1.
 		)
         
     ## END GEOMETRY ##
     
     # Return values
     return r_circum, thickness, N_pl_Rd, N_b_Rd_shell, x_corners, y_corners
+
+
+def fabclass_2_umax(fab_class):
+    # Assign imperfection amplitude, u_max acc. to the fabrication class
+    if fab_class is 'fcA':
+        u_max = 0.006
+    elif fab_class is 'fcB':
+        u_max = 0.010
+    else:
+        u_max = 0.016
+    
+    # Return values
+    return u_max

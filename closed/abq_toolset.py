@@ -155,6 +155,8 @@ def cs_prop(nodes, elem):
     # calculate the principal moment of inertia
     I1 = sum([sum(a) for a in zip([a**2*b*c/12 for a,b,c in zip(yd,L,tt)], [(a-yc)**2*b*c for a,b,c in zip(ym,L,tt)])])
     I2 = sum([sum(a) for a in zip([a**2*b*c/12 for a,b,c in zip(xd,L,tt)], [(a-xc)**2*b*c for a,b,c in zip(xm,L,tt)])])
+    
+    # Return values
     return A, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal
 
 
@@ -324,3 +326,36 @@ def history_max(odb_name, step_name):
     odbAccess.closeOdb(myOdb)
     return lpf
 
+
+def plastic_table(nominal = None):
+    
+    if nominal is None:
+        nominal = 'S355'
+    else:
+        nominal = str(nominal)
+    
+    if nominal is 'S355':
+        table=(
+            (381.1, 0.0),
+            (391.2, 0.0053),
+            (404.8, 0.0197),
+            (418.0, 0.0228),
+            (444.2, 0.0310),
+            (499.8, 0.0503),
+            (539.1, 0.0764),
+            (562.1, 0.1009),
+            (584.6, 0.1221),
+            (594.4, 0.1394),
+            (5961, 1.)
+            )
+    
+    if nominal is 'S650':
+        table=(
+            (760., 0.0),
+            (770., 0.022),
+            (850., 0.075),
+            (900., 0.1),
+            (901., 1.)
+            )
+    
+    return table

@@ -70,13 +70,24 @@ def sigma_cr_plate(thickness, width):
 
 ###### Cylindrical shells ######
 
-def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality, gamma_M1):
+def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality = None, gamma_M1 = None):
+    # Default values
+    if fab_quality is None:
+        fab_quality = 'fcA'
+    elif fab_quality is not ('fcA' or 'fcB' or 'fcB'):
+        print('Invalid fabrication class input. Choose between \'fcA\', \'fcB\' and \'fcC\' ')
+    
+    if gamma_M1 is None:
+        gamma_M1 = 1.
+    else:
+        gamma_M1 = float(gamma_M1)
+    
     # Fabrication quality class acc. to table D2
-    if fab_quality == 1:
+    if fab_quality is 'fcA':
         Q_factor = 40.
-    elif fab_quality == 2:
+    elif fab_quality == 'fcB':
         Q_factor = 25.
-    elif fab_quality == 3:
+    elif fab_quality == 'fcC':
         Q_factor = 16.
     
     # Critical meridinal stress, calculated on separate function

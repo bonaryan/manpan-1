@@ -1,5 +1,6 @@
 
 *.m~
+*.rpy
 *.asv
 *.pyc
 *.cae
