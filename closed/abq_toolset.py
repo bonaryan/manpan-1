@@ -278,7 +278,7 @@ def polygon_sector(n, R, t, tg, rbend, nbend, l_lip):
 
 # Look for the max value in a field output
 # Function name to be changed to field_max(). (look for instances on other script e.g. semi-closed script)
-def max_field_result(odb, result):
+def field_max(odb, result):
     result_field, result_invariant = result
     _max = -1.0e20
     for step in odb.steps.values():

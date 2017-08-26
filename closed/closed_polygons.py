@@ -50,9 +50,7 @@ import os
 import sys
 import odbAccess
 from shutil import copyfile
-from EN_tools import N_pl_Rd as single_plate_Rd
-from EN_tools import sigma_x_Rd as shell_buckling_stress
-
+import EN_tools as en
 
 
 def modeler(
@@ -94,6 +92,12 @@ def modeler(
     else:
         column_length = float(column_length)
     
+    # If no waves are given, a buckling model is ran and used for GMNIA imperfections
+    if n_of_waves is None and m_of_waves is None:
+        bckl_flag = True
+    else:
+        bckl_flag = False
+    
     # Number of circumverential waves for imperfection
     if n_of_waves is None:
         n_of_waves = int(n_sides / 2)
@@ -102,7 +106,7 @@ def modeler(
     
     # Number of meridional waves for imperfection
     if m_of_waves is None:
-        m_of_waves = int(n_sides / 2)
+        m_of_waves = int(n_of_waves)
     else:
         m_of_waves = int(m_of_waves)
     
@@ -152,7 +156,7 @@ def modeler(
         f_yield = f_yield,
         fab_class = fab_class,
         )
-
+    
     r_circum = properties[0]
     shell_thickness = properties[1]
     N_pl_Rd = properties[2]
@@ -183,7 +187,7 @@ def modeler(
         name = 'cs_sketch',
         sheetSize = 2 * r_circum
         )
-
+    
     # Draw lines sides on the sketch for the polygon
     for current_corner in range(n_sides):
         cs_sketch.Line(
@@ -370,48 +374,7 @@ def modeler(
     bckl_model.fieldOutputRequests['F-Output-1'].setValues(
         variables = ('U',)
         )
-    
-    # Apply imperfections
-    # Edit the coordinates of nodes to get the imperfect shape
-    
-    # Circumferencial half wavelength.
-    # perimeter divided by the number of waves
-    l_gx_circum = pi * diameter / (2 * n_of_waves)
-    
-    # Meridional half wavelength
-    l_gx_meridi = column_length / (2 * m_of_waves)
-    
-    # l_gx is calculated as the mean value of the two wavelengths
-    # (This requires justification)
-    l_gx = min(l_gx_circum, l_gx_meridi)
-    
-    # Convert fabrication class to u_max
-    u_max = fabclass_2_umax(fab_class)
-    
-    #theta_yoshi = (m_of_waves * pi * 2 * r_circle) / (n_of_waves * column_length)
-    
-    #n_twists = column_length * tan(theta_yoshi) / (2 * pi * r_circle)
-    
-    for j in range(len(column_instance.nodes)):
-        xi = column_instance.nodes[j].coordinates[0]
-        yi = column_instance.nodes[j].coordinates[1]
-        zi = column_instance.nodes[j].coordinates[2]
-        if xi > 1e-14:
-            crrnt_pt_angle = atan(yi / xi)
-        elif xi < -1e-14:
-            crrnt_pt_angle = pi + atan(yi / xi)
-        else:
-            crrnt_pt_angle = pi
         
-        circum_wave = sin(n_of_waves * crrnt_pt_angle)
-        meridi_wave = sin(m_of_waves * 2 * pi * zi / column_length)
-        
-        r_assembly.editNode(
-            nodes = column_instance.nodes[j],
-            offset1 = u_max * l_gx * (circum_wave * meridi_wave) * cos(crrnt_pt_angle),
-            offset2 = u_max * l_gx * (circum_wave * meridi_wave) * sin(crrnt_pt_angle)
-            )
-    
     ## Save the model
     mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
     
@@ -434,7 +397,7 @@ def modeler(
         name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=13,
+        maxNumInc=3,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -502,59 +465,145 @@ def modeler(
     
     ###### BCKL JOB ######
     
-    ## Edit the keywords for the buckling model to write 'U' on file
-    #bckl_model.keywordBlock.synchVersions(storeNodesAndElements = False)
-    #bckl_model.keywordBlock.insert(xtr.GetBlockPosition(bckl_model,'*End Step')-1, '*NODE FILE\nU')
-    #
-    ## Create the job
-    #bckl_job = mdb.Job(
-    #    atTime = None,
-    #    contactPrint = OFF,
-    #    description = '',
-    #    echoPrint = OFF, 
-    #    explicitPrecision = SINGLE,
-    #    getMemoryFromAnalysis = True,
-    #    historyPrint = OFF, 
-    #    memory = 90,
-    #    memoryUnits = PERCENTAGE,
-    #    model = 'bckl_model',
-    #    modelPrint = OFF, 
-    #    multiprocessingMode = DEFAULT,
-    #    name = 'BCKL-'+IDstring,
-    #    nodalOutputPrecision = SINGLE, 
-    #    numCpus = 1,
-    #    numGPUs = 0,
-    #    queue = None,
-    #    resultsFormat = ODB,
-    #    scratch = '',
-    #    type = ANALYSIS,
-    #    userSubroutine = '',
-    #    waitHours = 0,
-    #    waitMinutes = 0
-    #    )
-    #
-    ## Submit buckling job
-    #bckl_job.submit(consistencyChecking=OFF)
-    #bckl_job.waitForCompletion()
+    if bckl_flag is True:
+        # Edit the keywords for the buckling model to write 'U' on file
+        bckl_model.keywordBlock.synchVersions(storeNodesAndElements = False)
+        bckl_model.keywordBlock.insert(xtr.GetBlockPosition(bckl_model,'*End Step')-1, '*NODE FILE\nU')
+        
+        # Create the job
+        bckl_job = mdb.Job(
+            atTime = None,
+            contactPrint = OFF,
+            description = '',
+            echoPrint = OFF, 
+            explicitPrecision = SINGLE,
+            getMemoryFromAnalysis = True,
+            historyPrint = OFF, 
+            memory = 90,
+            memoryUnits = PERCENTAGE,
+            model = 'bckl_model',
+            modelPrint = OFF, 
+            multiprocessingMode = DEFAULT,
+            name = 'BCKL-'+IDstring,
+            nodalOutputPrecision = SINGLE, 
+            numCpus = 1,
+            numGPUs = 0,
+            queue = None,
+            resultsFormat = ODB,
+            scratch = '',
+            type = ANALYSIS,
+            userSubroutine = '',
+            waitHours = 0,
+            waitMinutes = 0
+            )
+        
+        # Submit buckling job
+        bckl_job.submit(consistencyChecking=OFF)
+        bckl_job.waitForCompletion()
     
     ###### END BCKL JOB ######
     
+    ###### BCKL post processing ######
+    # Open the buckling step odb file
+    bckl_odb = odbAccess.openOdb(path='BCKL-'+IDstring+'.odb')
+    bckl_step = bckl_odb.steps['bckl']
+    
+    # Gather the eigenvalues
+    eigenvalues = ()
+    eigen_string = ""
+    for J_eigenvalues in range(1, n_eigen + 1):
+        current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
+        eigenvalues = eigenvalues + (current_eigen, )
+        eigen_string = eigen_string + "%.3E "%(current_eigen)
+    
+    
+    ###### IMPERFECTIONS #####
+    
+    # Edit the coordinates of nodes to get the imperfect shape.
+    # In case specific number of waves are given as input, the imperfections
+    # are applied directly to the mesh by the wave functions
+    # In case no imperfections are given, imperfections are introduced 
+    # using the first eigenmode of a buckling analysis. The amplitude of
+    # this imperfection is regulated according to the 
+    
+    if bckl_flag is True:
+        # Calculate the proportionality of the two imperfection types
+        # based on the deviation of the 1st eigenvalue to the plate critical load
+        #
+        # Plate critical stress
+        sigma_cr = en.sigma_cr_plate(shell_thickness, (pi * diameter / n_sides))
+        N_cr_pl = pi * diameter * shell_thickness * sigma_cr
+        N_cr_sh = en.N_cr_shell(shell_thickness, r_circle, column_length)
+        prop_a = abs(eigenvalues[0] - N_cr_pl)
+        prop_b = abs(eigenvalues[0] - N_cr_sh)
+        
+        # find the maximum displacement from the buckling analysis
+        bckl_odb = xtr.open_odb('BCKL-'+IDstring+'.odb')
+        Umax = xtr.field_max(bckl_odb, ['U', 'Magnitude'])
+        odbAccess.closeOdb(bckl_odb)
+        
+        # Plate-like imperfection half wavelength
+        # perimeter divided by the number of waves
+        l_g_I = pi * diameter / (n_sides)
+        
+        # Plate-like imperfection half wavelength
+        l_g_II = pi * diameter / (2 * floor(n_sides / 4))
+        
+        # l_g is formed from l_g_I and l_g_II.
+        # the contribution of each wavelength is based on the deviation of 
+        # the eigenvalue analysis to the EC N_cr
+        l_g = l_g_I * (prop_b / (prop_a + prop_b)) + l_g_II * (prop_a / (prop_a + prop_b))
+        
+        # Calculate target maximum imperfection displacement (fabrication class)
+        # for a length lg calculated between 1 and 2 sides (plate and spillover waves)
+        u_tot = l_g * fabclass_2_umax(fab_class)
+        
+        # Imperfection amplitude
+        a_imp = u_tot / Umax
+        
+        # Edit the keywords for the compression riks model to include imperfections from buckling analysis and to output the RIKS_NODE for GN_killer to work
+        riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
+        riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1, 
+        '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=BCKL-'+IDstring+',STEP=1\n1,'+str(a_imp)+'\n**')
+        riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
+    
+    else:
+        # Circumferencial half wavelength.
+        # perimeter divided by the number of waves
+        l_g_circum = pi * diameter / (2 * n_of_waves)
+        
+        # Meridional half wavelength
+        l_g_meridi = column_length / (2 * m_of_waves)
+        
+        # l_gx is calculated as the mean value of the two wavelengths
+        # (This requires justification)
+        l_g = min(l_g_circum, l_g_meridi)
+        
+        # Loop through the nodes of the mesh and apply displacements
+        for j in range(len(column_instance.nodes)):
+            xi = column_instance.nodes[j].coordinates[0]
+            yi = column_instance.nodes[j].coordinates[1]
+            zi = column_instance.nodes[j].coordinates[2]
+            if xi > 1e-14:
+                crrnt_pt_angle = atan(yi / xi)
+            elif xi < -1e-14:
+                crrnt_pt_angle = pi + atan(yi / xi)
+            else:
+                crrnt_pt_angle = pi
+            
+            circum_wave = sin(n_of_waves * crrnt_pt_angle)
+            meridi_wave = sin(m_of_waves * 2 * pi * zi / column_length)
+            
+            r_assembly.editNode(
+                nodes = column_instance.nodes[j],
+                offset1 = fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle),
+                offset2 = fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle)
+                )
+    
+    ######END IMPERFECTIONS ####
+    
     ###### RIKS JOB #######
-    
-    ## find the maximum displacement from the buckling analysis
-    #bckl_odb = xtr.open_odb('BCKL-'+IDstring+'.odb')
-    #Umax = xtr.max_result(bckl_odb, ['U', 'Magnitude'])
-    #odbAccess.closeOdb(bckl_odb)
-    #
-    ## Imperfection amplitude
-    #a_imp = w_side / (200 * Umax)
-    #
-    ## Edit the keywords for the compression riks model to include imperfections from buckling analysis and to output the RIKS_NODE for GN_killer to work
-    riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
-    #riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1, 
-    #'\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=BCKL'+IDstring+',STEP=1\n1,'+str(a_imp)+'\n**')
-    riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
-    
+        
     # Create the RIKS job
     riks_job = mdb.Job(
         atTime = None,
@@ -592,20 +641,7 @@ def modeler(
     ##### END RIKS JOB ##########
     
     ##### POST-PROCESSING #####\
-    
-    ## BCKL post processing
-    ## Open the buckling step odb file
-    #bckl_odb = odbAccess.openOdb(path='BCKL-'+IDstring+'.odb')
-    #bckl_step = bckl_odb.steps['bckl']
-    #
-    ## Gather the eigenvalues
-    #eigenvalues = ()
-    #eigen_string = ""
-    #for J_eigenvalues in range(1, n_eigen + 1):
-    #    current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
-    #    eigenvalues = eigenvalues + (current_eigen, )
-    #    eigen_string = eigen_string + "%.3E "%(current_eigen)
-    
+
     ## RIKS post processing
     ## Find max LPF
     LPF = xtr.history_max('RIKS-'+IDstring, step_name)
@@ -646,11 +682,9 @@ def modeler(
     
     
     #out_file = open('./' + proj_name +'.dat', 'a')
-    return_string = ("%03d %03d %03d %07.3f %07.3f %07.3f %03d %05.3f %05.1f %.3E %05.3f "
+    return_string = ("%03d %07.3f %07.3f %07.3f %03d %05.3f %05.1f %.3E %.3E %05.3f "
         %(
             n_sides,
-            m_of_waves,
-            n_of_waves,
             2 * r_circle,
             2 * r_circum,
             shell_thickness,
@@ -781,10 +815,10 @@ def cs_calculator(
     y_corners = r_circum * np.sin(phii)
     
     # Axial compression resistance , Npl
-    N_pl_Rd = n_sides * single_plate_Rd(thickness, w_side, f_yield)
+    N_pl_Rd = n_sides * en.N_pl_Rd(thickness, w_side, f_yield)
     
-    # Compression resistance of equivalens cylindrical shell
-    N_b_Rd_shell = 2 * pi * r_circle * thickness * shell_buckling_stress(
+    # Compression resistance of equivalent cylindrical shell
+    N_b_Rd_shell = 2 * pi * r_circle * thickness * en.sigma_x_Rd(
         thickness, 
         r_circle, 
         column_length, 
