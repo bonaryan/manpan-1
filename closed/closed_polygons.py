@@ -113,7 +113,7 @@ def modeler(
     # Amplitude of imperfection
     if fab_class is None:
         fab_class = 'fcA'
-    elif fab_class is not ('fcA' or 'fcB' or 'fcB'):
+    elif not((fab_class is 'fcA') or (fab_class is 'fcB') or (fab_class is 'fcC')):
         print('Invalid fabrication class input. Choose between \'fcA\', \'fcB\' and \'fcC\' ')
     
     # Yield stress
@@ -397,7 +397,7 @@ def modeler(
         name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=3,
+        maxNumInc=50,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -505,16 +505,17 @@ def modeler(
     
     ###### BCKL post processing ######
     # Open the buckling step odb file
-    bckl_odb = odbAccess.openOdb(path='BCKL-'+IDstring+'.odb')
-    bckl_step = bckl_odb.steps['bckl']
-    
-    # Gather the eigenvalues
-    eigenvalues = ()
-    eigen_string = ""
-    for J_eigenvalues in range(1, n_eigen + 1):
-        current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
-        eigenvalues = eigenvalues + (current_eigen, )
-        eigen_string = eigen_string + "%.3E "%(current_eigen)
+    if bckl_flag is True:
+        bckl_odb = odbAccess.openOdb(path='BCKL-'+IDstring+'.odb')
+        bckl_step = bckl_odb.steps['bckl']
+        
+        # Gather the eigenvalues
+        eigenvalues = ()
+        eigen_string = ""
+        for J_eigenvalues in range(1, n_eigen + 1):
+            current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
+            eigenvalues = eigenvalues + (current_eigen, )
+            eigen_string = eigen_string + "%.3E "%(current_eigen)
     
     
     ###### IMPERFECTIONS #####
@@ -563,11 +564,10 @@ def modeler(
         # Imperfection amplitude
         a_imp = u_tot / Umax
         
-        # Edit the keywords for the compression riks model to include imperfections from buckling analysis and to output the RIKS_NODE for GN_killer to work
+        # Edit the keywords for the compression riks model to include imperfections from buckling analysis
         riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
         riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1, 
         '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=BCKL-'+IDstring+',STEP=1\n1,'+str(a_imp)+'\n**')
-        riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
     
     else:
         # Circumferencial half wavelength.
@@ -605,7 +605,11 @@ def modeler(
     ######END IMPERFECTIONS ####
     
     ###### RIKS JOB #######
-        
+    
+    #  Output the RIKS_NODE for GN_killer to work
+    riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
+    riks_mdl.keywordBlock.insert(xtr.GetBlockPosition(riks_mdl,'*End Step')-1, '\n*NODE FILE, GLOBAL=YES, NSET=RIKS_NODE\nU')
+    
     # Create the RIKS job
     riks_job = mdb.Job(
         atTime = None,
@@ -628,11 +632,12 @@ def modeler(
         resultsFormat = ODB,
         scratch = '',
         type = ANALYSIS,
-        #userSubroutine='../GN_Riks_killer.f',
+        userSubroutine='../GN_Riks_killer.f',
         waitHours = 0,
         waitMinutes = 0
         )
     
+    mdb.saveAs(pathName=os.getcwd()+'/'+IDstring+'.cae')
     # Submit RIKS job
     riks_job.submit(consistencyChecking = OFF)
     riks_job.waitForCompletion()

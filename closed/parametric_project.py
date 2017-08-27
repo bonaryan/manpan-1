@@ -8,7 +8,7 @@ from os import path
 import closed_polygons
 
 # Give a project name
-prj_name = 'specimens'
+prj_name = '002-fcB'
 
 # Remove folders after execution? (keep only the output file)
 remove_folders = False
@@ -19,8 +19,8 @@ remove_folders = False
 # A list of all possible combinations is stored in "combinations"
 combinations = list(
     product(
-        [16, 20, 24], 
-        [30, 40, 50],
+        range(6, 31, 2),
+        range(27, 55, 3),
         )
     )
 
@@ -48,19 +48,14 @@ for parameter in combinations:
     print('Running job: ' + job_ID)
     
     try:
-        r_circle = closed_polygons.class_2_radius(
-            n_sides = parameter[0], 
-            p_classification = parameter[1], 
-            thickness = 2., 
-            f_yield = 760. 
-            )
-        
         job_return = closed_polygons.modeler(
             n_sides = parameter[0], 
-            r_circle = r_circle, 
             p_classification = parameter[1], 
-            f_yield = 760., 
-            nominal_fy = 'S650',
+            n_of_waves = parameter[0]/2,
+            m_of_waves = parameter[0]/2,
+            fab_class = 'fcB',
+            f_yield = 381., 
+            nominal_fy = 'S355',
             IDstring = job_ID, 
             proj_name = prj_name, 
             )
