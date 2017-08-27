@@ -535,8 +535,8 @@ def modeler(
         sigma_cr = en.sigma_cr_plate(shell_thickness, (pi * diameter / n_sides))
         N_cr_pl = pi * diameter * shell_thickness * sigma_cr
         N_cr_sh = en.N_cr_shell(shell_thickness, r_circle, column_length)
-        diff_I = sqrt(eigenvalues[0] - N_cr_pl)
-        diff_II = sqrt(eigenvalues[0] - N_cr_sh)
+        diff_I = (eigenvalues[0] - N_cr_pl) ** 2
+        diff_II = (eigenvalues[0] - N_cr_sh) ** 2
         prop_I = diff_II / (diff_I + diff_II)
         prop_II = diff_I / (diff_I + diff_II)
         
@@ -648,7 +648,7 @@ def modeler(
     ##### END RIKS JOB ##########
     
     ##### POST-PROCESSING #####\
-
+    
     ## RIKS post processing
     ## Find max LPF
     LPF = xtr.history_max('RIKS-'+IDstring, step_name)
@@ -785,11 +785,11 @@ def cs_calculator(
         f_yield = 381.
     else:
         f_yield = float(f_yield)
-
+    
     # Fabrication class
     if fab_class is None:
         fab_class = 'fcA'
-
+    
     ## END INPUT ##
     
     ## GEOMETRY ##
@@ -832,7 +832,7 @@ def cs_calculator(
         f_yield, 
         fab_quality = fab_class, 
         gamma_M1 = 1.
-		)
+        )
         
     ## END GEOMETRY ##
     
