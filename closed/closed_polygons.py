@@ -534,8 +534,10 @@ def modeler(
         sigma_cr = en.sigma_cr_plate(shell_thickness, (pi * diameter / n_sides))
         N_cr_pl = pi * diameter * shell_thickness * sigma_cr
         N_cr_sh = en.N_cr_shell(shell_thickness, r_circle, column_length)
-        prop_a = abs(eigenvalues[0] - N_cr_pl)
-        prop_b = abs(eigenvalues[0] - N_cr_sh)
+        diff_I = sqrt(eigenvalues[0] - N_cr_pl)
+        diff_II = sqrt(eigenvalues[0] - N_cr_sh)
+        prop_I = diff_II / (diff_I + diff_II)
+        prop_II = diff_I / (diff_I + diff_II)
         
         # find the maximum displacement from the buckling analysis
         bckl_odb = xtr.open_odb('BCKL-'+IDstring+'.odb')
@@ -552,7 +554,7 @@ def modeler(
         # l_g is formed from l_g_I and l_g_II.
         # the contribution of each wavelength is based on the deviation of 
         # the eigenvalue analysis to the EC N_cr
-        l_g = l_g_I * (prop_b / (prop_a + prop_b)) + l_g_II * (prop_a / (prop_a + prop_b))
+        l_g = l_g_I * prop_I + l_g_II * prop_II
         
         # Calculate target maximum imperfection displacement (fabrication class)
         # for a length lg calculated between 1 and 2 sides (plate and spillover waves)

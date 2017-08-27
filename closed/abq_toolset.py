@@ -324,7 +324,7 @@ def history_max(odb_name, step_name):
     disp = -disp_hist[maxpos][1]
     lpf = lpf_hist[maxpos][1]
     odbAccess.closeOdb(myOdb)
-    return lpf
+    return lpf, load, disp
 
 
 def plastic_table(nominal = None):

@@ -22,7 +22,7 @@ remove_folders = True
 combinations = list(
     product(
         [16, 20, 24], 
-        [42]
+        [30, 40, 50]
         )
     )
 
@@ -85,6 +85,9 @@ for parameter in combinations:
             )
         
         job_return = [r_circle]+[list(profile[0:3])+[lmda]]
+        
+        # Write the output to file
+        out_file.write(job_return + '\n')
     
     except:
         print('Problem while executing job: '+ job_ID)
@@ -92,7 +95,7 @@ for parameter in combinations:
         os.chdir('../')
     
     # Remove job's folder (only the output information is kept)
-    #if remove_folders is True:
-    #    rmtree(job_ID)
+    if remove_folders is True:
+        rmtree(job_ID)
 
 out_file.close()
