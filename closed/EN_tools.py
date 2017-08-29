@@ -1,6 +1,6 @@
-from math import sqrt, pi
+from math import sqrt, pi, log
 
-###### Simply supported plate ######
+###### SIMPLY SUPPORTED PLATE ######
 
 def N_pl_Rd(thickness, width, f_yield, psi=None):
     # Convert inputs to floats
@@ -68,7 +68,7 @@ def sigma_cr_plate(thickness, width):
     return sigma_cr
 
 
-###### Cylindrical shells ######
+###### CYLINDRICAL SHELLS ######
 
 def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality = None, gamma_M1 = None):
     # Default values
@@ -163,7 +163,7 @@ def sigma_x_Rcr(thickness, radius, length):
     return sigma_cr, length_category
 
 
-###### Flexural buckling ######
+###### FLEXURAL BUCKLING ######
 
 def lmbda(
     length,
@@ -230,3 +230,29 @@ def N_cr_flex(
     return N_cr_flex
 
 
+###### CIRCULAR PLATE  #####
+# The following formulas are taken from table 18-3 of:
+# W. D. Pilkey, Formulas for stress, strain, and structural matrices. New York: Wiley, 1994.
+#
+## Hinged perimeter
+### Concentrated force applied on circle
+#############(not finished, there is an errror, to be revised)###########
+
+def circular_plate(a_L, a_1, W_load, r):
+    poisson = 0.3
+    
+    alfa = r / a_L
+    beta = a_1 / a_L
+    
+    C_1 = (3 + poisson) / (1 + poisson) * (1 + beta ** 2) + 2 * beta ** 2 * log(beta)
+    C_2 = (1 - poisson) / (1 + poisson) * (1 - beta ** 2) + 2 * log(beta)
+    C_3 = (3 + poisson) / (1 + poisson) - beta ** 2 * (1 - poisson) / (1 + poisson)
+    
+    if alfa <= beta:
+        M_r = (1 / 4) * W_load * a_L * (1 + poisson) * C_2
+        M_phi = M_r
+    else:
+        M_r = (1 / 4) * (W_load * a_1) / (alfa ** 2) * ((1 - poisson) * (1 - alfa ** 2) * beta ** 2 - 2 * (1 + poisson) * alfa ** 2 * log(alfa))
+        M_phi = (1 / 4) * (W_load * a_1) / (alfa ** 2) * (2 * (1 - poisson) * alfa ** 2 - (1 - poisson) * (1 + alfa ** 2) * beta ** 2 - 2 * (1 + poisson) * alfa ** 2 * log(alfa))
+    
+    return M_r, M_phi

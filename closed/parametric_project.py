@@ -2,6 +2,8 @@ import numpy as np
 from itertools import product
 from shutil import rmtree
 from os import path
+from time import sleep
+from random import random
 
 #### INPUT ####
 # Import the method to be run parametrically
@@ -34,6 +36,11 @@ for parameter in combinations:
     job_ID = (''.join("%03d-"%e for e in parameter) + prj_name)
     #job_ID = ("%03d-%03d-"%(parameter[0], parameter[1]) + parameter[2] + '-' + "%03d-"%parameter[3] + prj_name)
     job_ID = job_ID.translate(None, '.')
+    
+    # Wait some seconds to avoid multiple initiation of jobs
+    sleep(round(10*random(), 2))
+    
+    # Check if the directory exists
     if (path.isdir("./" + job_ID)):
         print("Job already exists: A directory with the same name"+job_ID+" exists in the cwd")
         continue
