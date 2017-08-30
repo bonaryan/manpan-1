@@ -506,17 +506,9 @@ def modeler(
     ###### BCKL post processing ######
     # Open the buckling step odb file
     if bckl_flag is True:
-        bckl_odb = odbAccess.openOdb(path='BCKL-'+IDstring+'.odb')
-        bckl_step = bckl_odb.steps['bckl']
-        
-        # Gather the eigenvalues
-        eigenvalues = ()
-        eigen_string = ""
-        for J_eigenvalues in range(1, n_eigen + 1):
-            current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
-            eigenvalues = eigenvalues + (current_eigen, )
-            eigen_string = eigen_string + "%.3E "%(current_eigen)
-    
+        eigen_data = xtr.fetch_eigenv('BCKL-'+IDstring, 'bckl', n_eigen)
+        eigenvalues = eigen_data[0]
+        eigen_string = eigen_data[1]
     
     ###### IMPERFECTIONS #####
     

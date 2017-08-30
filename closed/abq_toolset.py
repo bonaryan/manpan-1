@@ -327,6 +327,25 @@ def history_max(odb_name, step_name):
     return lpf, load, disp
 
 
+def fetch_eigenv(odb_name, step_name, n_eigen):
+    bckl_odb = odbAccess.openOdb(path=odb_name+'.odb')
+    bckl_step = bckl_odb.steps[step_name]
+    
+    # Gather the eigenvalues
+    eigenvalues = ()
+    eigen_string = ""
+    for J_eigenvalues in range(1, n_eigen + 1):
+        current_eigen = float(bckl_step.frames[J_eigenvalues].description[-11:])
+        eigenvalues = eigenvalues + (current_eigen, )
+        eigen_string = eigen_string + "%.3E "%(current_eigen)
+    
+    # Close the odb
+    odbAccess.closeOdb(bckl_odb)
+    
+    # Return variables
+    return eigenvalues, eigen_string
+
+
 def plastic_table(nominal = None):
     
     if nominal is None:
