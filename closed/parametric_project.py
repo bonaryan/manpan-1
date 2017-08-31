@@ -10,7 +10,7 @@ from random import random
 import closed_polygons
 
 # Give a project name
-prj_name = '002-fcB'
+prj_name = 'test'
 
 # Remove folders after execution? (keep only the output file)
 remove_folders = False

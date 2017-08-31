@@ -168,7 +168,10 @@ def modeler(
     epsilon = sqrt(235. / f_yield)
     
     # Diameter of the circumferential circle
-    diameter = 2 * r_circum
+    diam_circum = 2 * r_circum
+    
+    # Diameter of the circumferential circle
+    diam_circle = 2 * r_circle
     
     # Buckling model name
     bckl_model_name = 'bckl_model'
@@ -259,47 +262,47 @@ def modeler(
     p_part.seedPart(
         deviationFactor = 0.1, 
         minSizeFactor = 0.1,
-        size = diameter / 65
+        size = diam_circum / 65
         )
     
     # Mesh the part
     p_part.generateMesh()
     
     # Create variable and coordinate system for the assembly
-    r_assembly = bckl_model.rootAssembly
-    r_assembly.DatumCsysByDefault(CARTESIAN)
+    b_assembly = bckl_model.rootAssembly
+    b_assembly.DatumCsysByDefault(CARTESIAN)
     
     # Create instance
-    column_instance = r_assembly.Instance(
+    column_instance = b_assembly.Instance(
         dependent=ON,
         name='short_column', 
         part=p_part
         )
     
     # Create reference points at the ends of the column for BC couplings
-    r_assembly.ReferencePoint(point=(0.0, 0.0, 0.0))
-    r_assembly.ReferencePoint(point=(0.0, 0.0, column_length))
+    b_assembly.ReferencePoint(point=(0.0, 0.0, 0.0))
+    b_assembly.ReferencePoint(point=(0.0, 0.0, column_length))
     
-    rp_base = r_assembly.referencePoints.items()[1][1]
-    rp_head = r_assembly.referencePoints.items()[0][1]
+    rp_base = b_assembly.referencePoints.items()[1][1]
+    rp_head = b_assembly.referencePoints.items()[0][1]
     
     # Create sets for the two reference points
-    rp_base_set = r_assembly.Set(
+    rp_base_set = b_assembly.Set(
         name='base_rp',
         referencePoints = (rp_base, ))
     
-    rp_head_set = r_assembly.Set(
+    rp_head_set = b_assembly.Set(
         name='head_rp',
         referencePoints = (rp_head, ))
     
     # Create sets for the base and the head of the column
-    base_edges_set = r_assembly.Set(
-        edges = column_instance.edges.getByBoundingBox(-diameter, -diameter, 0, diameter, diameter, 0),
+    base_edges_set = b_assembly.Set(
+        edges = column_instance.edges.getByBoundingBox(-diam_circum, -diam_circum, 0, diam_circum, diam_circum, 0),
         name = 'base_edges'
         )
     
-    head_edges_set = r_assembly.Set( 
-        edges = column_instance.edges.getByBoundingBox(-diameter, -diameter, column_length, diameter, diameter, column_length),
+    head_edges_set = b_assembly.Set( 
+        edges = column_instance.edges.getByBoundingBox(-diam_circum, -diam_circum, column_length, diam_circum, diam_circum, column_length),
         name = 'head_edges'
         )
     
@@ -397,7 +400,7 @@ def modeler(
         name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=50,
+        maxNumInc=1,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -524,8 +527,8 @@ def modeler(
         # based on the deviation of the 1st eigenvalue to the plate critical load
         #
         # Plate critical stress
-        sigma_cr = en.sigma_cr_plate(shell_thickness, (pi * diameter / n_sides))
-        N_cr_pl = pi * diameter * shell_thickness * sigma_cr
+        sigma_cr = en.sigma_cr_plate(shell_thickness, (pi * diam_circle / n_sides))
+        N_cr_pl = pi * diam_circle * shell_thickness * sigma_cr
         N_cr_sh = en.N_cr_shell(shell_thickness, r_circle, column_length)
         diff_I = (eigenvalues[0] - N_cr_pl) ** 2
         diff_II = (eigenvalues[0] - N_cr_sh) ** 2
@@ -539,10 +542,10 @@ def modeler(
         
         # Plate-like imperfection half wavelength
         # perimeter divided by the number of waves
-        l_g_I = pi * diameter / (n_sides)
+        l_g_I = pi * diam_circle / (n_sides)
         
         # Plate-like imperfection half wavelength
-        l_g_II = pi * diameter / (2 * floor(n_sides / 4))
+        l_g_II = pi * diam_circle / (2 * floor(n_sides / 4))
         
         # l_g is formed from l_g_I and l_g_II.
         # the contribution of each wavelength is based on the deviation of 
@@ -562,9 +565,13 @@ def modeler(
         '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=BCKL-'+IDstring+',STEP=1\n1,'+str(a_imp)+'\n**')
     
     else:
+        # Create the items for the riks assembly and instance.
+        r_isntance = riks_mdl.rootAssembly.instances['short_column']
+        r_assembly = riks_mdl.rootAssembly
+        
         # Circumferencial half wavelength.
         # perimeter divided by the number of waves
-        l_g_circum = pi * diameter / (2 * n_of_waves)
+        l_g_circum = pi * diam_circle / (2 * n_of_waves)
         
         # Meridional half wavelength
         l_g_meridi = column_length / (2 * m_of_waves)
@@ -574,10 +581,10 @@ def modeler(
         l_g = min(l_g_circum, l_g_meridi)
         
         # Loop through the nodes of the mesh and apply displacements
-        for j in range(len(column_instance.nodes)):
-            xi = column_instance.nodes[j].coordinates[0]
-            yi = column_instance.nodes[j].coordinates[1]
-            zi = column_instance.nodes[j].coordinates[2]
+        for j in range(len(r_isntance.nodes)):
+            xi = r_isntance.nodes[j].coordinates[0]
+            yi = r_isntance.nodes[j].coordinates[1]
+            zi = r_isntance.nodes[j].coordinates[2]
             if xi > 1e-14:
                 crrnt_pt_angle = atan(yi / xi)
             elif xi < -1e-14:
@@ -589,7 +596,7 @@ def modeler(
             meridi_wave = sin(m_of_waves * 2 * pi * zi / column_length)
             
             r_assembly.editNode(
-                nodes = column_instance.nodes[j],
+                nodes = r_isntance.nodes[j],
                 offset1 = fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle),
                 offset2 = fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle)
                 )
@@ -624,7 +631,7 @@ def modeler(
         resultsFormat = ODB,
         scratch = '',
         type = ANALYSIS,
-        userSubroutine='../GN_Riks_killer.f',
+        #userSubroutine='../GN_Riks_killer.f',
         waitHours = 0,
         waitMinutes = 0
         )
@@ -793,16 +800,16 @@ def cs_calculator(
     r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
     
     # Diameter
-    diameter = 2 * r_circum
+    diam_circum = 2 * r_circum
     
     # Central angles
     theta = 2 * pi / n_sides
     
     # Width of each side
-    w_side = diameter * sin(pi / n_sides)
+    w_side = diam_circum * sin(pi / n_sides)
     
     # Thickness the given class (classification as plated, not tube)
-    thickness = (diameter * sin(theta / 2)) / (p_classification * epsilon)
+    thickness = (diam_circum * sin(theta / 2)) / (p_classification * epsilon)
     
     # Polar coordinate of ths polygon vertices on the cross-section plane
     phii = []

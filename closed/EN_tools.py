@@ -74,7 +74,7 @@ def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality = None, gamma_M1 = 
     # Default values
     if fab_quality is None:
         fab_quality = 'fcA'
-    elif fab_quality is not ('fcA' or 'fcB' or 'fcB'):
+    elif not((fab_quality is 'fcA') or (fab_quality is 'fcB') or (fab_quality is 'fcC')):
         print('Invalid fabrication class input. Choose between \'fcA\', \'fcB\' and \'fcC\' ')
     
     if gamma_M1 is None:
