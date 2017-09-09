@@ -15,6 +15,9 @@ prj_name = 'test'
 # Remove folders after execution? (keep only the output file)
 remove_folders = False
 
+# Delay jobs to avoid collisions of parallel jobs when running on the cluster
+delay_jobs = False
+
 # Define a list of lists of input values.
 # The parrent list has length of the number of parameters that vary
 # The children lists are ranges of values for each parameter.
@@ -38,7 +41,8 @@ for parameter in combinations:
     job_ID = job_ID.translate(None, '.')
     
     # Wait some seconds to avoid multiple initiation of jobs
-    sleep(round(10*random(), 2))
+    if delay_jobs is True:
+        sleep(round(10*random(), 2))
     
     # Check if the directory exists
     if (path.isdir("./" + job_ID)):

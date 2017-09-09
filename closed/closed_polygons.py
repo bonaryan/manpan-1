@@ -400,7 +400,7 @@ def modeler(
         name=step_name,
         previous='Initial',
         nlgeom=ON,
-        maxNumInc=1,
+        maxNumInc=50,
         extrapolation=LINEAR,
         initialArcInc=0.1,
         minArcInc=1e-07,
@@ -631,7 +631,7 @@ def modeler(
         resultsFormat = ODB,
         scratch = '',
         type = ANALYSIS,
-        #userSubroutine='../GN_Riks_killer.f',
+        userSubroutine='../GN_Riks_killer.f',
         waitHours = 0,
         waitMinutes = 0
         )
