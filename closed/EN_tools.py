@@ -1,8 +1,50 @@
+"""This is the general docstring"""
 from math import sqrt, pi, log
-
 ###### SIMPLY SUPPORTED PLATE ######
 
-def N_pl_Rd(thickness, width, f_yield, psi):
+
+def N_pl_Rd(
+            thickness,
+            width,
+            f_yield,
+            psi
+            ):
+    # Docstring
+    """
+    Plastic design resistance of a plate.
+    
+    Calculates the resistance of a plate according to EN1993-1-1 and 
+    EN1993-1-5. The plate is assumed simply supported.
+    
+    Parameters
+    ----------
+    thickness : float
+        [mm] Plate thickness
+    width : float
+        [mm] Plate width
+    f_yield : float
+        [MPa] Yield stress
+    psi : float, optional
+        [_] Ratio of the min over max stress for a linear distribution, 
+        (sigma_min / sigma_max)
+        Default = 1, which implies a uniform distribution
+    
+    Returns
+    -------
+    float
+        [N] Plastic design resistance
+    
+    Notes
+    -----
+    To be extended to include cantilever plate (outstand members)
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-1: General rules and rules for buildings. Brussels: CEN, 2005.
+    .. [2] Eurocode 3: Design of steel structures - Part 1-5: Plated structural elements. Brussels: CEN, 2005.
+
+    """
+    
     # Convert inputs to floats
     thickness, width, f_yield = float(thickness), float(width), float(f_yield)
     
@@ -17,7 +59,7 @@ def N_pl_Rd(thickness, width, f_yield, psi):
 
     # Critical compression load
     N_cr_plate = thickness * width * sigma_cr_plate(thickness, width, psi=psi)
-	
+    
     # Aeff calculation.
     # Reduction factor for the effective area of the profile acc. to EC3-1-5
     classification = width / (thickness * sqrt(235 / f_yield))
@@ -37,7 +79,45 @@ def N_pl_Rd(thickness, width, f_yield, psi):
     return N_pl_Rd
 
 
-def plate_class(width, thickness, f_yield):
+def plate_class(
+                thickness,
+                width,
+                f_yield
+                ):
+    
+    # Docstring
+    """
+    Plate classification.
+    
+    Returnes the class for a given plate, according to EN1993-1-1.
+    Currently works for simply supported plates under pure compression.
+    
+    Parameters
+    ----------
+    thickness : float
+        [mm] Plate thickness
+    width : float
+        [mm] Plate width
+    f_yield : float
+        [MPa] Yield stress
+    
+    Returns
+    -------
+    int
+        [_] Class number
+    
+    Notes
+    -----
+    To be extended to include the rest of the cases of Table 5.3 [1].
+    Members under combined axial and bending and outstand members.
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-1: General rules and rules for buildings. Brussels: CEN, 2005.
+    
+    """
+    
+
     # Convert inputs to floats
     width, thickness, f_yield = float(width), float(thickness), float(f_yield)
     
@@ -56,7 +136,43 @@ def plate_class(width, thickness, f_yield):
     return p_class
 
 
-def sigma_cr_plate(thickness, width, psi=None):
+def sigma_cr_plate(
+                   thickness, 
+                   width, 
+                   psi=None
+                   ):
+    
+    # Docstring
+    """
+    Critical stress of a plate.
+    
+    Calculates the critical stress for a simply supported plate.
+    
+    Parameters
+    ----------
+    thickness : float
+        [mm] Plate thickness
+    width : float
+        [mm] Plate width
+    psi : float, optional
+        [_] Ratio of the min over max stress for a linear distribution, 
+        (sigma_min / sigma_max)
+        Default = 1, which implies a uniform distribution
+    
+    Returns
+    -------
+    float
+        [MPa] Plate critical stress
+    
+    Notes
+    -----
+    To be extended to include cantilever plate (outstand members)
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-5: Plated structural elements. Brussels: CEN, 2005.
+
+    """
     # Convert inputs to floats
     thickness, width = float(thickness), float(width)
     
@@ -79,7 +195,52 @@ def sigma_cr_plate(thickness, width, psi=None):
 
 ###### CYLINDRICAL SHELLS ######
 
-def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality = None, gamma_M1 = None):
+def sigma_x_Rd(
+               thickness,
+               radius,
+               length,
+               f_y_k,
+               fab_quality = None,
+               gamma_M1 = None
+               ):
+    
+    # Docstring
+    """ 
+    Meridional design buckling stress.
+    
+    Calculates the meridional buckling stress for a cylindrical shell 
+    according to EN1993-1-6 [1].
+    
+    Parameters
+    ----------
+    thickness : float
+        [mm] Shell thickness
+    radius : float
+        [mm] Cylinder radius
+    length : float
+        [mm] Cylnder length
+    f_y_k : float
+        [MPa] Characteristic yield strength
+    fab_quality : str, optional
+        [_] Fabrication quality class. Accepts: 'fcA', 'fcB', 'fcC'
+        The three classes correspond to .006, .010 and .016 times the 
+        width of a dimple on the shell.
+        Default = 'fcA', which implies excelent fabrication
+    gamma_M1 : int, optional
+        [_] Partial safety factor
+        Default = 1.
+    
+    Returns
+    -------
+    float
+        [MPa] Meridional buckling stress
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-6: Strength and stability of shell structures. Brussels: CEN, 2006.
+
+    """
+
     # Default values
     if fab_quality is None:
         fab_quality = 'fcA'
@@ -134,7 +295,40 @@ def sigma_x_Rd(thickness, radius, length, f_y_k, fab_quality = None, gamma_M1 = 
     return sigma_Rd
 
 
-def N_cr_shell(thickness, radius, length):
+def N_cr_shell(
+               thickness, 
+               radius, 
+               length
+               ):
+    
+    # Docstring
+    """ 
+    Critical compressive load for cylindrical shell.
+    
+    Calculates the critical load for a cylindrical shell under pure 
+    compression and assumes uniform stress distribution. Calculation
+    according to EN1993-1-6 [1], Annex D.
+    
+    Parameters
+    ----------
+    thickness : float
+        [mm] Shell thickness
+    radius : float
+        [mm] Cylinder radius
+    length : float
+        [mm] Cylnder length
+    
+    Returns
+    -------
+    float
+        [N] Critical load
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-6: Strength and stability of shell structures. Brussels: CEN, 2006.
+
+    """
+
     # Convert inputs to floats
     thickness, radius, length = float(thickness), float(radius), float(length)
     
@@ -145,7 +339,39 @@ def N_cr_shell(thickness, radius, length):
     return N_cr_shell
 
 
-def sigma_x_Rcr(thickness, radius, length):
+def sigma_x_Rcr(
+                thickness, 
+                radius, 
+                length
+                ):
+    
+    # Docstring
+    """ 
+    Critical meridional stress for cylindrical shell.
+    
+    Calculates the critical load for a cylindrical shell under pure 
+    compression and assumes uniform stress distribution. Calculation
+    according to EN1993-1-6 [1], Annex D.
+    
+    Parameters
+    ----------
+    thickness : float
+        [mm] Shell thickness
+    radius : float
+        [mm] Cylinder radius
+    length : float
+        [mm] Cylnder length
+    
+    Returns
+    -------
+    float
+        [N] Critical load
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-6: Strength and stability of shell structures. Brussels: CEN, 2006.
+
+    """
     # Convert inputs to floats
     thickness, radius, length = float(thickness), float(radius), float(length)
     
@@ -177,12 +403,44 @@ def sigma_x_Rcr(thickness, radius, length):
 def lmbda(
     length,
     area,
-    I_2,
+    MOI,
     kapa_BC = None,
     E_modulus = None,
     f_yield = None
     ):
     
+    # Docstring
+    """
+    Flexural slenderness.
+    
+    Calculates the slenderness of a columne under pure compression.
+    Euler's critical load is used.
+    
+    Parameters
+    ----------
+    length : float
+        [mm] Column length
+    area : float
+        [mm^2] Cross section area
+    MOI : float
+        [mm^4] Moment of inertia
+    kapa_BC : float, optional
+        [_] length correction for the effect of the boundary conditions.
+        Default = 1, which implies simply supported column
+    E_modulus : float, optional
+        [MPa] Modulus of elasticity
+        Default = 210000., typical value for steel
+    f_yield : float, optional
+        [MPa] yield stress.
+        Default = 380., brcause this value was used extencively while the
+        function was being written. To be changed to 235.
+    
+    Returns
+    -------
+    float
+        [_] Member slenderness
+    
+    """
     # default values
     if kapa_BC is None:
         kapa_BC = 1.
@@ -202,7 +460,7 @@ def lmbda(
     # Calculate Euler's critical load
     N_cr = N_cr_flex(
         length,
-        I_2,
+        MOI,
         E_modulus = E_modulus,
         kapa_BC = kapa_BC
         )
@@ -216,11 +474,36 @@ def lmbda(
 
 def N_cr_flex(
     length,
-    I_2,
-    E_modulus = None,
-    kapa_BC = None
+    MOI,
+    kapa_BC = None,
+    E_modulus = None
     ):
     
+    # Docstring
+    """
+    Euler's critical load.
+    
+    Calculates the critical load for flexural buckling of a given column.
+        
+    Parameters
+    ----------
+    length : float
+        [mm] Column length.
+    MOI : float
+        [mm^4] Moment of inertia.
+    kapa_BC : float, optional
+        [_] length correction for the effect of the boundary conditions.
+        Default = 1, which implies simply supported column.
+    E_modulus : float, optional
+        [MPa] Modulus of elasticity.
+        Default = 210000., typical value for steel.
+    
+    Returns
+    -------
+    float
+        [N] Critical load.
+    
+    """
     # default values
     if kapa_BC is None:
         kapa_BC = 1.
@@ -233,10 +516,176 @@ def N_cr_flex(
         E_modulus = float(E_modulus)
     
     # Euler's critical load
-    N_cr_flex = (pi ** 2) * E_modulus * I_2 / (kapa_BC * length) ** 2
+    N_cr_flex = (pi ** 2) * E_modulus * MOI / (kapa_BC * length) ** 2
     
     # Return the result
     return N_cr_flex
+
+
+def imp_factor(b_curve):
+    
+    # Docstring
+    """
+    Imperfection factor.
+    
+    Returns the imperfection factor for a given buckling curve.
+    The values are taken from Table 6.1 of EN1993-1-1 [1]
+        
+    Parameters
+    ----------
+    b_curve : str
+        [_] Name of the buckling curve as obtained from Table 6.2 of [1].
+        Valid options are {'a0', 'a', 'b', 'c', 'd'}
+    
+    Returns
+    -------
+    float
+        [_] Imperfection factor.
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-1: General rules and rules for buildings. Brussels: CEN, 2005.
+
+    """
+    switcher = {
+        'a0': 0.13,
+        'a': 0.21,
+        'b': 0.34,
+        'c': 0.49,
+        'd': 0.76,
+    }
+    return switcher.get(b_curve, "nothing")
+
+
+def chi_flex(
+             length,
+             area,
+             MOI,
+             f_yield,
+             b_curve,
+             kapa_BC = None
+             ):
+    
+    # Docstring
+    """
+    Flexural buckling reduction factor.
+    
+    Claculates the reduction factor, chi, according to EN1993-1-1 6.3.1.2
+    
+    Parameters
+    ----------
+    length : float
+        [mm] Column length
+    area : float
+        [mm^2] Cross section area
+    MOI : float
+        [mm^4] Moment of inertia
+    f_yield : float
+        [MPa] Yield stress.
+    b_curve : str
+        [_] Name of the buckling curve as obtained from Table 6.2 of [1].
+        Valid options are {'a0', 'a', 'b', 'c', 'd'}
+    kapa_BC : float, optional
+        [_] length correction for the effect of the boundary conditions.
+        Default = 1, which implies simply supported column
+    
+    Returns
+    -------
+    float
+        [_] Reduction factor.
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-1: General rules and rules for buildings. Brussels: CEN, 2005.
+
+    """
+    if kapa_BC is None:
+        kapa_BC = 1.
+    
+    lmda = lmbda(
+        length = length,
+        area = area,
+        MOI = MOI,
+        kapa_BC = kapa_BC,
+        E_modulus = None,
+        f_yield = f_yield
+        )
+    
+    alpha = imp_factor(b_curve)
+    
+    phi = (1 + alpha * (lmda - 0.2) + lmda**2) / 2.
+    
+    chi = 1 / (phi + sqrt(phi**2 - lmda**2))
+    
+    if chi > 1.:
+        chi = 1.
+    
+    return chi
+
+
+def N_b_Rd(
+           length, 
+           area, 
+           MOI, 
+           f_yield, 
+           b_curve, 
+           kapa_BC = None, 
+           gamma_M1 = None
+           ):
+    
+    # Docstring
+    """
+    Flexural buckling resistance.
+    
+    Verifies the resistance of a column against flexural buckling
+    according to EN1993-1-1 6.3.1.1.
+    
+    Parameters
+    ----------
+    length : float
+        [mm] Column length
+    area : float
+        [mm^2] Cross section area
+    MOI : float
+        [mm^4] Moment of inertia
+    f_yield : float
+        [MPa] Yield stress.
+    b_curve : str
+        [_] Name of the buckling curve as obtained from Table 6.2 of [1].
+        Valid options are {'a0', 'a', 'b', 'c', 'd'}
+    kapa_BC : float, optional
+        [_] Length correction for the effect of the boundary conditions.
+        Default = 1, which implies simply supported column
+    gamma_M1 : float, optional
+        [_] Partial safety factor.
+        Default = 1.
+    
+    Returns
+    -------
+    float
+        [N] Buckling resistance.
+    
+    References
+    ----------
+    .. [1] Eurocode 3: Design of steel structures - Part 1-1: General rules and rules for buildings. Brussels: CEN, 2005.
+
+    """
+    if kapa_BC is None:
+        kapa_BC = 1.
+    
+    if gamma_M1 is None:
+        gamma_M1 = 1.
+    
+    chi = chi_flex(length,
+        area,
+        MOI,
+        f_yield,
+        b_curve,
+        kapa_BC=kapa_BC)
+        
+    N_b_Rd = area * f_yield * chi / gamma_M1
+    
+    return N_b_Rd
 
 
 ###### CIRCULAR PLATE  #####
@@ -245,23 +694,23 @@ def N_cr_flex(
 #
 ## Hinged perimeter
 ### Concentrated force applied on circle
-#############(not finished, there is an errror, to be revised)###########
-
-def circular_plate(a_L, a_1, W_load, r):
-    poisson = 0.3
-    
-    alfa = r / a_L
-    beta = a_1 / a_L
-    
-    C_1 = (3 + poisson) / (1 + poisson) * (1 + beta ** 2) + 2 * beta ** 2 * log(beta)
-    C_2 = (1 - poisson) / (1 + poisson) * (1 - beta ** 2) + 2 * log(beta)
-    C_3 = (3 + poisson) / (1 + poisson) - beta ** 2 * (1 - poisson) / (1 + poisson)
-    
-    if alfa <= beta:
-        M_r = (1 / 4) * W_load * a_L * (1 + poisson) * C_2
-        M_phi = M_r
-    else:
-        M_r = (1 / 4) * (W_load * a_1) / (alfa ** 2) * ((1 - poisson) * (1 - alfa ** 2) * beta ** 2 - 2 * (1 + poisson) * alfa ** 2 * log(alfa))
-        M_phi = (1 / 4) * (W_load * a_1) / (alfa ** 2) * (2 * (1 - poisson) * alfa ** 2 - (1 - poisson) * (1 + alfa ** 2) * beta ** 2 - 2 * (1 + poisson) * alfa ** 2 * log(alfa))
-    
-    return M_r, M_phi
+#############(not finished, there is an error, to be revised)###########
+#
+#def circular_plate(a_L, a_1, W_load, r):
+#    poisson = 0.3
+#    
+#    alfa = r / a_L
+#    beta = a_1 / a_L
+#    
+#    C_1 = (3 + poisson) / (1 + poisson) * (1 + beta ** 2) + 2 * beta ** 2 * log(beta)
+#    C_2 = (1 - poisson) / (1 + poisson) * (1 - beta ** 2) + 2 * log(beta)
+#    C_3 = (3 + poisson) / (1 + poisson) - beta ** 2 * (1 - poisson) / (1 + poisson)
+#    
+#    if alfa <= beta:
+#        M_r = (1 / 4) * W_load * a_L * (1 + poisson) * C_2
+#        M_phi = M_r
+#    else:
+#        M_r = (1 / 4) * (W_load * a_1) / (alfa ** 2) * ((1 - poisson) * (1 - alfa ** 2) * beta ** 2 - 2 * (1 + poisson) * alfa ** 2 * log(alfa))
+#        M_phi = (1 / 4) * (W_load * a_1) / (alfa ** 2) * (2 * (1 - poisson) * alfa ** 2 - (1 - poisson) * (1 + alfa ** 2) * beta ** 2 - 2 * (1 + poisson) * alfa ** 2 * log(alfa))
+#    
+#    return M_r, M_phi
