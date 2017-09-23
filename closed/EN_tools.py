@@ -1,5 +1,9 @@
-"""This is the general docstring"""
-from math import sqrt, pi, log
+"""
+
+A collection of structural steel related functions based on EN1993.
+
+"""
+from math import sqrt, pi, log, sin, cos, atan
 ###### SIMPLY SUPPORTED PLATE ######
 
 
@@ -398,12 +402,215 @@ def sigma_x_Rcr(
     return sigma_cr, length_category
 
 
-###### FLEXURAL BUCKLING ######
+###### OVERALL BUCKLING ######
+def N_cr_flex(
+    length,
+    I_y,
+    kapa_BC = None,
+    E_modulus = None
+    ):
+    
+    # Docstring
+    """
+    Euler's critical load.
+    
+    Calculates the critical load for flexural buckling of a given column.
+        
+    Parameters
+    ----------
+    length : float
+        [mm] Column length.
+    I_y : float
+        [mm^4] Moment of inertia.
+    kapa_BC : float, optional
+        [_] length correction for the effect of the boundary conditions.
+        Default = 1, which implies simply supported column.
+    E_modulus : float, optional
+        [MPa] Modulus of elasticity.
+        Default = 210000., typical value for steel.
+    
+    Returns
+    -------
+    float
+        [N] Critical load.
+    
+    """
+    # default values
+    if kapa_BC is None:
+        kapa_BC = 1.
+    else:
+        kapa_BC = float(kapa_BC)
+    
+    if E_modulus is None:
+        E_modulus = 210000.
+    else:
+        E_modulus = float(E_modulus)
+    
+    # Euler's critical load
+    N_cr_flex = (pi ** 2) * E_modulus * I_y / (kapa_BC * length) ** 2
+    
+    # Return the result
+    return N_cr_flex
 
-def lmbda(
+
+def N_cr_flex_tor(
     length,
     area,
-    MOI,
+    I_y,
+    I_z,
+    I_yz,
+    I_torsion,
+    I_warp,
+    y_sc = None,
+    z_sc = None,
+    E_modulus = None,
+    poisson = None,
+    ):
+    
+    # Docstring
+    """
+    Flexural-Torsional elastic critical load
+    
+    Calculates the critical load for flexural-torsional buckling of a
+    column with hinged ends. The three independent modes are calculated
+    (flexural on the mazor axis, flexural on the minor axis and 
+    torsional). The combined flexural-torsional modes are calculated as
+    roots of a 3rd order equation, as given in [1], [2]. The returned 
+    value is the minimum of the torsional and the three combined modes. 
+    (the two independent flexural modes are not considered; for pure
+    flexural mode use 'N_cr_flex').
+    
+    Parameters
+    ----------
+    length : float
+        [mm] Column length.
+    area : float
+        [mm^2] Cross-sectional area.
+    I_y : float
+        [mm^4] Moment of inertia around y-axis.
+    I_z : float
+        [mm^4] Moment of inertia around z-axis.
+    I_yz : float
+        [mm^4] Product of inertia.
+    I_torsion : float
+        [mm^4] Saint Venant constant.
+    I_warp : float
+        [mm^6] Torsion constant.
+    y_sc : float, optional
+        [mm] Distance on y-axis of the shear center to the origin.
+        Default = 0, which implies symmetric profile
+    z_sc : float, optional
+        [mm] Distance on z-axis of the shear center to the origin.
+        Default = 0, which implies symmetric profile
+    E_modulus : float, optional
+        [MPa] Modulus of elasticity.
+        Default = 210000., general steel.
+    poisson : float, optional
+        [_] Young's modulus of elasticity.
+        Default = 0.3, general steel.
+    
+    Returns
+    -------
+    float
+        [N] Flexural-torsional critical load.
+    
+    References
+    ----------
+    ..[1]N. S. Trahair, Flexural-torsional buckling of structures, vol. 6. CRC Press, 1993.
+    ..[2]NS. Trahair, MA. Bradford, DA. Nethercot, and L. Gardner, The behaviour and design of steel structures to EC3, 4th edition. London ; New York: Taylor & Francis, 2008.
+    """
+    # default values
+    if y_sc is None:
+        y_sc = 0
+    else:
+        y_sc = float(y_sc)
+    
+    if z_sc is None:
+        z_sc = 0
+    else:
+        z_sc = float(z_sc)
+    
+    if E_modulus is None:
+        E_modulus = 210000.
+    else:
+        E_modulus = float(E_modulus)
+    
+    if poisson is None:
+        poisson = 0.3
+    else:
+        poisson = float(poisson)
+    
+    # Shear modulus
+    G_modulus = E_modulus / (2 * (1 + poisson))
+        
+    # Angle of principal axes
+    if abs(I_y - I_z) < 1e-20:
+        theta = pi/4
+    else:
+        theta = -atan((2 * I_yz) / (I_y - I_z)) / 2
+    
+    # Distance of the rotation centre to the gravity centre on the
+    # principal axes coordinate system
+    y_0 = y_sc * cos(-theta) - z_sc * sin(-theta)
+    z_0 = z_sc * cos(-theta) + y_sc * sin(-theta)
+    
+    # Moment of inertia around principal axes.
+    I_y0 = (I_y + I_z)/2 + sqrt(((I_y - I_z) / 2)**2 + (I_yz)**2)
+    I_z0 = (I_y + I_z)/2 - sqrt(((I_y - I_z) / 2)**2 + (I_yz)**2)
+    
+    # Polar radius of gyration.
+    i_pol = sqrt((I_y0 + I_z0) / area)
+    i_zero = sqrt(i_pol ** 2 + y_0 ** 2 + z_0 ** 2)
+    
+    # Independent critical loads for flexural and torsional modes.
+    N_cr_max = (pi ** 2 * E_modulus * I_y0) / (length ** 2)
+    N_cr_min = (pi ** 2 * E_modulus * I_z0) / (length ** 2)
+    N_cr_tor = (1 / i_zero ** 2) * (G_modulus * I_torsion + (pi ** 2 * E_modulus * I_warp / length ** 2))
+    
+    # Coefficients of the 3rd order equation for the critical loads
+    # The equation is in the form aaaa * N ^ 3 - bbbb * N ^ 2 + cccc * N - dddd
+    aaaa = i_zero ** 2 - y_0 ** 2 - z_0 ** 2
+    bbbb = ((N_cr_max + N_cr_min + N_cr_tor) * i_zero ** 2) - (N_cr_min * y_0 ** 2) - (N_cr_max * z_0 ** 2)
+    cccc = i_zero ** 2 * (N_cr_min * N_cr_max) + (N_cr_min * N_cr_tor) + (N_cr_tor * N_cr_max)
+    dddd = i_zero ** 2 * N_cr_min * N_cr_max * N_cr_tor
+    
+    DD = (4 * (-bbbb ** 2 + 3 * aaaa * cccc) ** 3 + (2 * bbbb ** 3 - 9 * aaaa * bbbb * cccc + 27 * aaaa ** 2 * dddd) ** 2)
+    if (DD < 0):
+       DD = -1. * DD
+       cf = 1j
+    else:
+       cf = 1
+    
+    # Critical load
+    # The following N_cr formulas are the roots of the 3rd order equation of the global critical load
+    N_cr_1 = bbbb/(3.*aaaa) - (2**(1./3)*(-bbbb**2 + 3*aaaa*cccc))/                     \
+        (3.*aaaa*(2*bbbb**3 - 9*aaaa*bbbb*cccc + 27*aaaa**2*dddd +                      \
+        (cf*sqrt(DD)))**(1./3)) + (2*bbbb**3 - 9*aaaa*bbbb*cccc + 27*aaaa**2*dddd +     \
+        (cf*sqrt(DD)))**(1./3)/(3.*2**(1./3)*aaaa)
+    
+    N_cr_2 = bbbb/(3.*aaaa) + ((1 + (0 + 1j)*sqrt(3))*(-bbbb**2 + 3*aaaa*cccc))/        \
+        (3.*2**(2./3)*aaaa*(2*bbbb**3 - 9*aaaa*bbbb*cccc + 27*aaaa**2*dddd +            \
+        (cf*sqrt(DD)))**(1./3)) - ((1 - (0 + 1j)*sqrt(3))*                              \
+        (2*bbbb**3 - 9*aaaa*bbbb*cccc + 27*aaaa**2*dddd +                               \
+        (cf*sqrt(DD)))**(1./3))/(6.*2**(1./3)*aaaa)
+    
+    N_cr_3 = bbbb/(3.*aaaa) + ((1 - (0 + 1j)*sqrt(3))*(-bbbb**2 + 3*aaaa*cccc))/        \
+        (3.*2**(2./3)*aaaa*(2*bbbb**3 - 9*aaaa*bbbb*cccc + 27*aaaa**2*dddd +            \
+        (cf*sqrt(DD)))**(1./3)) - ((1 + (0 + 1j)*sqrt(3))*                              \
+        (2*bbbb**3 - 9*aaaa*bbbb*cccc + 27*aaaa**2*dddd +                               \
+        (cf*sqrt(DD)))**(1./3))/(6.*2**(1./3)*aaaa)
+    
+    # Lowest root is the critical load
+    N_cr_flex_tor = min(abs(N_cr_1), abs(N_cr_2), abs(N_cr_3), N_cr_tor)
+    
+    # Return the critical load
+    return N_cr_flex_tor
+
+
+def lmbda_flex(
+    length,
+    area,
+    I_y,
     kapa_BC = None,
     E_modulus = None,
     f_yield = None
@@ -422,7 +629,7 @@ def lmbda(
         [mm] Column length
     area : float
         [mm^2] Cross section area
-    MOI : float
+    I_y : float
         [mm^4] Moment of inertia
     kapa_BC : float, optional
         [_] length correction for the effect of the boundary conditions.
@@ -460,66 +667,16 @@ def lmbda(
     # Calculate Euler's critical load
     N_cr = N_cr_flex(
         length,
-        MOI,
+        I_y,
         E_modulus = E_modulus,
         kapa_BC = kapa_BC
         )
     
     # Flexural slenderness EN3-1-1 6.3.1.3 (1)
-    lmbda = sqrt(area * f_yield / N_cr)
+    lmbda_flex = sqrt(area * f_yield / N_cr)
     
     # Return the result
-    return lmbda
-
-
-def N_cr_flex(
-    length,
-    MOI,
-    kapa_BC = None,
-    E_modulus = None
-    ):
-    
-    # Docstring
-    """
-    Euler's critical load.
-    
-    Calculates the critical load for flexural buckling of a given column.
-        
-    Parameters
-    ----------
-    length : float
-        [mm] Column length.
-    MOI : float
-        [mm^4] Moment of inertia.
-    kapa_BC : float, optional
-        [_] length correction for the effect of the boundary conditions.
-        Default = 1, which implies simply supported column.
-    E_modulus : float, optional
-        [MPa] Modulus of elasticity.
-        Default = 210000., typical value for steel.
-    
-    Returns
-    -------
-    float
-        [N] Critical load.
-    
-    """
-    # default values
-    if kapa_BC is None:
-        kapa_BC = 1.
-    else:
-        kapa_BC = float(kapa_BC)
-    
-    if E_modulus is None:
-        E_modulus = 210000.
-    else:
-        E_modulus = float(E_modulus)
-    
-    # Euler's critical load
-    N_cr_flex = (pi ** 2) * E_modulus * MOI / (kapa_BC * length) ** 2
-    
-    # Return the result
-    return N_cr_flex
+    return lmbda_flex
 
 
 def imp_factor(b_curve):
@@ -560,7 +717,7 @@ def imp_factor(b_curve):
 def chi_flex(
              length,
              area,
-             MOI,
+             I_y,
              f_yield,
              b_curve,
              kapa_BC = None
@@ -578,7 +735,7 @@ def chi_flex(
         [mm] Column length
     area : float
         [mm^2] Cross section area
-    MOI : float
+    I_y : float
         [mm^4] Moment of inertia
     f_yield : float
         [MPa] Yield stress.
@@ -602,10 +759,10 @@ def chi_flex(
     if kapa_BC is None:
         kapa_BC = 1.
     
-    lmda = lmbda(
+    lmda = lmbda_flex(
         length = length,
         area = area,
-        MOI = MOI,
+        I_y = I_y,
         kapa_BC = kapa_BC,
         E_modulus = None,
         f_yield = f_yield
@@ -626,7 +783,7 @@ def chi_flex(
 def N_b_Rd(
            length, 
            area, 
-           MOI, 
+           I_y, 
            f_yield, 
            b_curve, 
            kapa_BC = None, 
@@ -646,7 +803,7 @@ def N_b_Rd(
         [mm] Column length
     area : float
         [mm^2] Cross section area
-    MOI : float
+    I_y : float
         [mm^4] Moment of inertia
     f_yield : float
         [MPa] Yield stress.
@@ -678,7 +835,7 @@ def N_b_Rd(
     
     chi = chi_flex(length,
         area,
-        MOI,
+        I_y,
         f_yield,
         b_curve,
         kapa_BC=kapa_BC)
