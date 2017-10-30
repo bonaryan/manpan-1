@@ -7,13 +7,13 @@ from random import random
 
 #### INPUT ####
 # Import the method to be run parametrically
-import closed_polygons
+import EN_tools
 
 # Give a project name
-prj_name = 'test'
+prj_name = 'shell_critical_load'
 
 # Remove folders after execution? (keep only the output file)
-remove_folders = False
+remove_folders = True
 
 # Delay jobs to avoid collisions of parallel jobs when running on the cluster
 delay_jobs = False
@@ -59,23 +59,22 @@ for parameter in combinations:
     print('Running job: ' + job_ID)
     
     try:
-        job_return = closed_polygons.modeler(
-            n_sides = parameter[0], 
-            p_classification = parameter[1], 
-            n_of_waves = parameter[0]/2,
-            m_of_waves = parameter[0]/2,
-            fab_class = 'fcB',
-            f_yield = 381., 
-            nominal_fy = 'S355',
-            IDstring = job_ID, 
-            proj_name = prj_name, 
-            )
+        diameter = 500.
+        radius = diameter / 2
+        epsilon = sqrt(235./ 381.)
+        thickness = pi * diameter / (parameter[0] * parameter[1] * epsilon)
+        width = pi * diameter / parameter[0]
+        #job_return = pi * diameter * thickness * EN_tools.sigma_cr_plate(thickness, width)
+        
+        # Shell critical load
+        job_return = EN_tools.sigma_x_Rcr(thickness, radius, 2*pi*radius)
+        N_cr_shell = job_return[0] * thickness * pi * diameter
         
         # Return to parent directory
         os.chdir('../')
         
         # Write each returned string to the file separated by newlines
-        job_return = str(job_return)
+        job_return = str(job_return) + str(N_cr_shell)
         out_file.write(job_ID + ", " + job_return + "\n")
         
     except:

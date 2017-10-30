@@ -6,6 +6,124 @@
 #  abq_toolset.py	-> additional python tools for abaqus
 #  GN_Riks_killer	-> Optional. Fortran code that kills the analysys under certain conditions. To neglect, comment the corresponding line on the riks job.
 # For the GN_Riks_killer to operate on windows, the extension must be .for or .obj. To run on linux, it must be .f. Change the filename and the job creation accordingly
+'''
+'''
+
+# Calculate xy of nodes for a given polygonal profile
+# Returns points for the entire profile (1st and 2nd returned values)
+# and points for a single sector (3rd and 4th returned values)
+def polygon_sector(n, R, t, tg, rbend, nbend, l_lip):
+    # Angle corresponding to one face of the polygon
+    theta = 2*math.pi/n;
+    
+    # Angles of radii (measured from x-axis)
+    phi=np.linspace(5*math.pi/6, math.pi/6, n/3+1)
+    
+    # xy coords of the polygon's corners
+    x = R*np.cos(phi);
+    y = R*np.sin(phi);
+    
+    ## Bends
+    
+    # Distance between bending centre and corner
+    lc = rbend/np.cos(theta/2)
+    
+    # Centers of bending arcs
+    xc  = x[1:-1] - lc*np.cos(phi[1:-1])
+    yc  = y[1:-1] - lc*np.sin(phi[1:-1])
+    
+    # Bending arc angle
+    theta_b = math.pi - theta
+    
+    # Angles of the edges' midlines (measured from x-axis)
+    phi_mids = phi[0:-1] - theta/2 
+    
+    # xy coords of the arc's points
+    xarc = [[0 for j in range(nbend+1)] for i in range(int(n/3 -1))]
+    yarc = [[0 for j in range(nbend+1)] for i in range(int(n/3 -1))] 
+    for i in range(int(n/3 -1)):
+        for j in range(nbend+1):
+            xarc[i][j] = xc[i] + rbend*np.cos(phi_mids[i]-(j)*(theta/nbend))
+            yarc[i][j] = yc[i] + rbend*np.sin(phi_mids[i]-(j)*(theta/nbend))
+    
+    ## Start-end extensions
+    # Bending radius
+    rs = rbend/2
+    xcs = [0, 0]
+    ycs = [0, 0]
+    
+    # First bend
+    v1 = phi_mids[0]-math.pi/2
+    v2 = (phi[0]+phi_mids[0]-math.pi/2)/2
+    l1 = (t+tg)/(2*np.cos(phi[0]-phi_mids[0]))
+    l2 = rs/np.sin(v2-phi_mids[0]+math.pi/2)
+    x1 = x[0]+l1*np.cos(v1)
+    y1 = y[0]+l1*np.sin(v1)
+    
+    # First bend centre coords
+    xcs[0] = x1+l2*np.cos(v2)
+    ycs[0] = y1+l2*np.sin(v2)
+    
+    # Last bend
+    v1 = phi_mids[-1]+math.pi/2
+    v2 = (v1+phi[-1])/2
+    l1 = (t+tg)/(2*np.cos(v1-phi[-1]-math.pi/2))
+    l2 = rs/np.sin(v2-phi[-1])
+    x1 = x[-1]+l1*np.cos(v1)
+    y1 = y[-1]+l1*np.sin(v1)
+    
+    # Last bend centre coords
+    xcs[1] = x1+l2*np.cos(v2)
+    ycs[1] = y1+l2*np.sin(v2)
+    
+    # First and last bend arc points coords
+    xsarc = [[0 for j in range(nbend+1)] for j in [0,1]]
+    ysarc = [[0 for j in range(nbend+1)] for j in [0,1]] 
+    for j in range(nbend+1):
+        xsarc[0][j] = xcs[0] + rs*np.cos(4*math.pi/3+(j)*((phi_mids[0]-math.pi/3)/nbend))
+        ysarc[0][j] = ycs[0] + rs*np.sin(4*math.pi/3+(j)*((phi_mids[0]-math.pi/3)/nbend))
+        xsarc[1][j] = xcs[1] + rs*np.cos(phi_mids[-1]+math.pi+(j)*((phi[-1]+math.pi/2-phi_mids[-1])/nbend))
+        ysarc[1][j] = ycs[1] + rs*np.sin(phi_mids[-1]+math.pi+(j)*((phi[-1]+math.pi/2-phi_mids[-1])/nbend))
+    
+    
+    ## Points of the lips
+    
+    # Lip length according to bolt washer diameter
+    
+    # First lip
+    xstart = [xsarc[0][0] + l_lip*np.cos(phi[0]), xsarc[0][0] + l_lip*np.cos(phi[0])/2]
+    ystart = [ysarc[0][0] + l_lip*np.sin(phi[0]), ysarc[0][0] + l_lip*np.sin(phi[0])/2]
+    
+    
+    # Last point
+    xend = [xsarc[1][-1] + l_lip*np.cos(phi[-1])/2, xsarc[1][-1] + l_lip*np.cos(phi[-1])]
+    yend = [ysarc[1][-1] + l_lip*np.sin(phi[-1])/2, ysarc[1][-1] + l_lip*np.sin(phi[-1])]
+    
+    ## Collect the x, y values in a sorted 2xn array
+    xarcs, yarcs=[],[]
+    for i in range(len(phi)-2):
+        xarcs=xarcs+xarc[i][:]
+        yarcs=yarcs+yarc[i][:]
+    
+    x_sector = xstart+xsarc[0][:]+xarcs[:]+xsarc[1][:]+xend
+    y_sector = ystart+ysarc[0][:]+yarcs[:]+ysarc[1][:]+yend
+    
+    # Copy-rotate the points of the first sector to create the entire CS
+    # Rotation matrix
+    Rmat = np.array([[math.cos(-2*math.pi/3), -math.sin(-2*math.pi/3)], [math.sin(-2*math.pi/3), math.cos(-2*math.pi/3)]])
+    
+    # Dot multiply matrices
+    coord1 = np.array([x_sector, y_sector])
+    coord2 = Rmat.dot(coord1)
+    coord3 = Rmat.dot(coord2)
+    
+    # Concatenate into a single xy array
+    x_cs = np.concatenate([coord1[0], coord2[0], coord3[0]])
+    y_cs = np.concatenate([coord1[1], coord2[1], coord3[1]])
+    
+    # Return matrices
+    return x_cs, y_cs, x_sector, y_sector
+
 
 # # Import necessary libraries --------------------------------------------------------------------
 
@@ -14,6 +132,7 @@ import sys
 import os
 import meshEdit
 import abq_toolset as xtr
+import steel_tools as stlt
 from part import *
 from material import *
 from section import *
@@ -167,7 +286,7 @@ t_classification = d_circumscribed / (cs_thickness * epsilon ** 2)
 gusset_thickness = (parameters.gusset_thickness_ratio * cs_thickness)
 
 # Diameter of the washer for the given bolt
-d_washer = xtr.bolt2washer(parameters.bolt_diameter)
+d_washer = stlt.bolt2washer(parameters.bolt_diameter)
 
 # Calculate lip length
 l_lip = d_washer + parameters.bend_clearence + parameters.edge_clearence
@@ -189,7 +308,7 @@ r_bend=parameters.bending_arc_radius*cs_thickness
 n_bend, null = divmod(pi*(1-2/parameters.n_sides)*r_bend, (parameters.elem_size))
 n_bend = int(n_bend)
 
-x_cs, y_cs, x_sector, y_sector = xtr.polygon_sector(parameters.n_sides,
+x_cs, y_cs, x_sector, y_sector = polygon_sector(parameters.n_sides,
                                                     R,
                                                      cs_thickness,
                                                     gusset_thickness,
@@ -207,7 +326,7 @@ coord = [x_cs, y_cs]
 ends = [range(nnodes), range(1,nnodes)+[0], [cs_thickness]*(nnodes/3-1)+[0.01]+[cs_thickness]*(nnodes/3-1)+[0.01]+[cs_thickness]*(nnodes/3-1)+[0.01]]
 
 # Calculate cross sectional properties
-Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = xtr.cs_prop(coord, ends)
+Area, xc, yc, Ix, Iy, Ixy, I1, I2, theta_principal = stlt.cs_prop(coord, ends)
 
 # Bending stiffness E*I
 E_I = parameters.Youngs_modulus * I2
