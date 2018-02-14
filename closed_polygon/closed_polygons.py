@@ -563,7 +563,8 @@ def modeler(
         riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
         riks_mdl.keywordBlock.replace(xtr.GetBlockPosition(riks_mdl, '*step')-1, 
         '\n** ----------------------------------------------------------------\n** \n**********GEOMETRICAL IMPERFECTIONS\n*IMPERFECTION,FILE=BCKL-'+IDstring+',STEP=1\n1,'+str(a_imp)+'\n**')
-    
+
+    #TODO: Re-write the node displacement procedure in a sep function and extend to include multiple imp types.
     else:
         # Create the items for the riks assembly and instance.
         r_isntance = riks_mdl.rootAssembly.instances['short_column']
@@ -575,7 +576,8 @@ def modeler(
         
         # Meridional half wavelength
         l_g_meridi = column_length / (2 * m_of_waves)
-        
+
+        #TODO: Wrong comment or wrong command. Decide and adjust.
         # l_gx is calculated as the mean value of the two wavelengths
         # (This requires justification)
         l_g = min(l_g_circum, l_g_meridi)
@@ -704,7 +706,7 @@ def modeler(
         )
     return return_string
 
-
+#TODO: Implement the following obsolete functions through steeltoolbox.
 def class_2_radius(
         n_sides = None, 
         p_classification = None, 

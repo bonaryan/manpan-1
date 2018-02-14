@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Polygoner.iml" filepath="$PROJECT_DIR$/.idea/Polygoner.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../steel_toolbox/.idea/steel_toolbox.iml" filepath="$PROJECT_DIR$/../steel_toolbox/.idea/steel_toolbox.iml" />
     </modules>
   </component>
 </project>
