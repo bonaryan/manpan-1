@@ -52,9 +52,9 @@ for parameter in combinations:
     try:
         thickness = 2.
         r_circle = closed_polygons.class_2_radius(
-            n_sides = parameter[0],
-            p_classification = parameter[1],
+            parameter[0],
             thickness = thickness,
+            parameter[1],
             f_yield = 650.
             )
         
