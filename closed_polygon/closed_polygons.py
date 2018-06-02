@@ -115,6 +115,8 @@ def calc_flex_imp(z,
                   column_length,
                   flex_imp,
                   axis_angle):
+    if flex_imp==0:
+        return 0, 0
 
     # Create the items for the riks assembly and instance.
     flex_imperfection_amp = column_length / flex_imp
@@ -161,7 +163,7 @@ def calc_local_imp(coords,
         circum_window = 1
         meridi_window = 1
 
-    offset1 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle) * (circum_window * meridi_window),
+    offset1 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle) * (circum_window * meridi_window)
     offset2 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle) * (circum_window * meridi_window)
 
     return offset1, offset2
@@ -330,13 +332,14 @@ def en_calcs(
 
     return return_dict
 
-
+#TODO: Update docstring for modeler
 def modeler(n_sides,
             r_circle,
             thickness,
             f_yield,
             arc_to_thickness=3.,
             lambda_flex=None,
+            flex_imp=0,
             imperfections=None,
             windowing=True,
             fab_class=None,
@@ -921,7 +924,6 @@ def modeler(n_sides,
             )
     else:
         eigenvalues = None
-        flex_imp = 150.
         for node in instance.nodes:
             coords = node.coordinates
             offset1, offset2 = calc_flex_imp(coords[2], column_length, flex_imp, 0.)
@@ -1071,7 +1073,9 @@ def modeler_classif(n_sides,
             r_circle,
             p_classification,
             f_yield,
+            arc_to_thickness=3.,
             lambda_flex=None,
+            flex_imp=0,
             imperfections=None,
             windowing=True,
             fab_class=None,
@@ -1098,12 +1102,14 @@ def modeler_classif(n_sides,
             r_circle,
             thickness,
             f_yield,
+            arc_to_thickness=arc_to_thickness,
             lambda_flex=lambda_flex,
+            flex_imp=flex_imp,
             imperfections=imperfections,
             windowing=windowing,
             fab_class=fab_class,
-            n_eigen=n_eigen,
             radius_to_elsize=radius_to_elsize,
+            n_eigen=n_eigen,
             submit=submit,
             IDstring=IDstring
             )
