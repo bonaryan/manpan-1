@@ -40,17 +40,95 @@ def class_2_thickness(n_sides,
     return (2 * np.pi * r_circle / (n_sides * epsilon * p_classification))
 
 
-def apply_local_imperfections(model,
-                              r_circle,
-                              column_length,
-                              circum_waves,
-                              meridi_waves,
-                              fab_class,
-                              percentage,
-                              windowing=False):
+# def apply_local_imperfections(model,
+#                               r_circle,
+#                               column_length,
+#                               circum_waves,
+#                               meridi_waves,
+#                               fab_class,
+#                               percentage,
+#                               windowing=False):
+#     # Create the items for the riks assembly and instance.
+#     assembly = model.rootAssembly
+#     instance = assembly.instances.values()[0]
+#
+#     # Circumferencial half wavelength.
+#     # perimeter divided by the number of waves
+#     l_g_circum = pi * 2  * r_circle / (2 * circum_waves)
+#
+#     # Meridional half wavelength
+#     l_g_meridi = column_length / (2 * meridi_waves)
+#     # l_gx is calculated as the mean value of the two wavelengths
+#     # (This requires justification)
+#     l_g = min(l_g_circum, l_g_meridi)
+#
+#     # Loop through the nodes of the mesh and apply displacements
+#     for node in instance.nodes:
+#         xi = node.coordinates[0]
+#         yi = node.coordinates[1]
+#         zi = node.coordinates[2]
+#         if xi > 1e-14:
+#             crrnt_pt_angle = atan(yi / xi)
+#         elif xi < -1e-14:
+#             crrnt_pt_angle = pi + atan(yi / xi)
+#         else:
+#             crrnt_pt_angle = pi
+#
+#         circum_wave = sin(circum_waves * crrnt_pt_angle)
+#         meridi_wave = cos(meridi_waves * 2 * pi * (zi - column_length/2.) / column_length)
+#
+#         if windowing:
+#             circum_window = blackman_percentage((crrnt_pt_angle + pi / 2.)/(2*pi))
+#             meridi_window = blackman_percentage(zi/(column_length+0.1))
+#         else:
+#             circum_window = 1
+#             meridi_window = 1
+#
+#         assembly.editNode(
+#             nodes=node,
+#             offset1=percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle) * (circum_window * meridi_window),
+#             offset2=percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle) * (circum_window * meridi_window)
+#         )
+#
+#
+# def apply_flexural_imperfections(model,
+#                                  column_length,
+#                                  flex_imp):
+#     # Create the items for the riks assembly and instance.
+#     assembly = model.rootAssembly
+#     instance = assembly.instances.values()[0]
+#     flex_imperfection_amp = column_length / flex_imp
+#
+#     for node in instance.nodes:
+#         xi = node.coordinates[0]
+#         yi = node.coordinates[1]
+#         zi = node.coordinates[2]
+#         glob_bow = -flex_imperfection_amp * sin(pi * zi / column_length) * sin(pi / 4)
+#         assembly.editNode(
+#             nodes=node,
+#             offset1=glob_bow,
+#             offset2=glob_bow,
+#         )
+
+
+def calc_flex_imp(z,
+                  column_length,
+                  flex_imp,
+                  axis_angle):
+
     # Create the items for the riks assembly and instance.
-    assembly = model.rootAssembly
-    isntance = assembly.instances.values()[0]
+    flex_imperfection_amp = column_length / flex_imp
+    glob_bow = -flex_imperfection_amp * sin(pi * z / column_length) * sin(pi / 4)
+    return sin(axis_angle) * glob_bow, cos(axis_angle) * glob_bow
+
+def calc_local_imp(coords,
+                   r_circle,
+                   column_length,
+                   circum_waves,
+                   meridi_waves,
+                   fab_class,
+                   percentage,
+                   windowing=False):
 
     # Circumferencial half wavelength.
     # perimeter divided by the number of waves
@@ -63,55 +141,30 @@ def apply_local_imperfections(model,
     l_g = min(l_g_circum, l_g_meridi)
 
     # Loop through the nodes of the mesh and apply displacements
-    for node in isntance.nodes:
-        xi = node.coordinates[0]
-        yi = node.coordinates[1]
-        zi = node.coordinates[2]
-        if xi > 1e-14:
-            crrnt_pt_angle = atan(yi / xi)
-        elif xi < -1e-14:
-            crrnt_pt_angle = pi + atan(yi / xi)
-        else:
-            crrnt_pt_angle = pi
+    xi = coords[0]
+    yi = coords[1]
+    zi = coords[2]
+    if xi > 1e-14:
+        crrnt_pt_angle = atan(yi / xi)
+    elif xi < -1e-14:
+        crrnt_pt_angle = pi + atan(yi / xi)
+    else:
+        crrnt_pt_angle = pi
 
-        circum_wave = sin(circum_waves * crrnt_pt_angle)
-        meridi_wave = cos(meridi_waves * 2 * pi * (zi - column_length/2.) / column_length)
+    circum_wave = sin(circum_waves * crrnt_pt_angle)
+    meridi_wave = cos(meridi_waves * 2 * pi * (zi - column_length/2.) / column_length)
 
-        if windowing:
-            circum_window = blackman_percentage((crrnt_pt_angle + pi / 2.)/(2*pi))
-            meridi_window = blackman_percentage(zi/(column_length+0.1))
-        else:
-            circum_window = 1
-            meridi_window = 1
+    if windowing:
+        circum_window = blackman_percentage((crrnt_pt_angle + pi / 2.)/(2*pi))
+        meridi_window = blackman_percentage(zi/(column_length+0.1))
+    else:
+        circum_window = 1
+        meridi_window = 1
 
-        assembly.editNode(
-            nodes=node,
-            offset1=percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle) * (circum_window * meridi_window),
-            offset2=percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle) * (circum_window * meridi_window)
-        )
+    offset1 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle) * (circum_window * meridi_window),
+    offset2 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle) * (circum_window * meridi_window)
 
-
-def apply_flexural_imperfections(model,
-                                 column_length,
-                                 flex_imp):
-    # Create the items for the riks assembly and instance.
-    assembly = model.rootAssembly
-    isntance = assembly.instances.values()[0]
-    flex_imperfection_amp = column_length / flex_imp
-
-    for node in isntance.nodes:
-        xi = node.coordinates[0]
-        yi = node.coordinates[1]
-        zi = node.coordinates[2]
-        glob_bow = -flex_imperfection_amp * sin(pi * zi / column_length) * sin(pi / 4)
-        assembly.editNode(
-            nodes=node,
-            offset1=glob_bow,
-            offset2=glob_bow,
-        )
-
-    pass
-
+    return offset1, offset2
 
 def blackman_percentage(percent):
     """
@@ -695,7 +748,7 @@ def modeler(n_sides,
         name = riks_model_name,
         objectToCopy = bckl_model
         )
-    
+
     # Delete buckling step
     del riks_mdl.steps[bckl_step_name]
     
@@ -731,10 +784,11 @@ def modeler(n_sides,
     
     # Create a set to act as a control point for the solver killer subroutine
     assmbl_riks = riks_mdl.rootAssembly
+    instance = assmbl_riks.instances[part_name]
     killer_cp_name = 'RIKS_NODE'
     assmbl_riks.Set(
         name=killer_cp_name,
-        nodes=(assmbl_riks.instances[part_name].nodes[1:2],)
+        nodes=(instance.nodes[1:2],)
         )
     
     # Set history output request for displacement
@@ -867,20 +921,28 @@ def modeler(n_sides,
             )
     else:
         eigenvalues = None
-        for imp_case in imperfections:
-            circum_waves, meridi_waves, scale = imp_case
-            apply_local_imperfections(riks_mdl,
-                                      r_circle,
-                                      column_length,
-                                      circum_waves,
-                                      meridi_waves,
-                                      fab_class,
-                                      scale,
-                                      windowing=windowing)
-        # Buckling curve "d" is assumed, initial bow imperfections L/150.
         flex_imp = 150.
-        apply_flexural_imperfections(riks_mdl, column_length, flex_imp)
-    
+        for node in instance.nodes:
+            coords = node.coordinates
+            offset1, offset2 = calc_flex_imp(coords[2], column_length, flex_imp, 0.)
+            for imp_case in imperfections:
+                circum_waves, meridi_waves, scale = imp_case
+                curr_offsets = calc_local_imp(coords,
+                                              r_circle,
+                                              column_length,
+                                              circum_waves,
+                                              meridi_waves,
+                                              fab_class,
+                                              scale,
+                                              windowing=windowing)
+                offset1, offset2 = offset1 + curr_offsets[0], offset2 + curr_offsets[1]
+
+            assmbl_riks.editNode(
+                nodes=node,
+                offset1=offset1,
+                offset2=offset2
+            )
+
     ###### END IMPERFECTIONS ####
     
     ###### RIKS JOB #######
