@@ -1138,7 +1138,8 @@ def results_from_odb(filename=None):
         filename = at.find_odb_in_cwd()
 
     # Open odb database
-    odb = at.open_odb(filename)
+    # odb = at.open_odb(filename)
+    odb = odbAccess.openOdb(path=filename, readOnly=True)
 
     # Find max values from history output
     max_lpf, max_load, max_disp = at.history_max(odb, "riks-step")
