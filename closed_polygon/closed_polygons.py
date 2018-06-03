@@ -1147,4 +1147,4 @@ def results_from_odb(filename=None):
     odbAccess.closeOdb(odb)
 
     # Return
-    return (" %05.3f"%(max_lpf)+" %07.3f"%(max_load)+" %07.3f"%(max_disp))
+    return ("%08.6f"%(max_lpf)+" %013.3f"%(max_load)+" %08.3f"%(max_disp))
