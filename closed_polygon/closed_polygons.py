@@ -32,13 +32,16 @@ def class_2_thickness(n_sides,
                       r_circle,
                       p_classification,
                       f_yield,
+                      arc_to_thickness=3
                       ):
     """ Calculate the thickness of a polygon for given radius and classification."""
     # Epsilon for the material
     epsilon = np.sqrt(235. / f_yield)
     
     # Calculate and return the thickness
-    return (2 * np.pi * r_circle / (n_sides * epsilon * p_classification))
+    thickness = r_circle * np.pi / (
+                n_sides * (p_classification * epsilon / 2 + arc_to_thickness * np.tan(np.pi / n_sides)))
+    return thickness
 
 
 # def apply_local_imperfections(model,
