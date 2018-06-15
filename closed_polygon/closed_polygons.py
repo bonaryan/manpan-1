@@ -6,6 +6,7 @@ from section import *
 from interaction import *
 from step import *
 from job import *
+from mesh import *
 import odbAccess
 
 # Additional modules
@@ -22,7 +23,7 @@ def class_2_radius(n_sides,
     """ Calculate radius of a polygon for given thickness and classification."""
     # Epsilon for the material
     epsilon = sqrt(235. / f_yield)
-
+    
     # Calculate and return the radius of the equal perimeter cylinder
     return (n_sides * thickness * epsilon * p_classification / (2 * pi))
 
@@ -35,7 +36,7 @@ def class_2_thickness(n_sides,
     """ Calculate the thickness of a polygon for given radius and classification."""
     # Epsilon for the material
     epsilon = np.sqrt(235. / f_yield)
-
+    
     # Calculate and return the thickness
     return (2 * np.pi * r_circle / (n_sides * epsilon * p_classification))
 
@@ -117,7 +118,7 @@ def calc_flex_imp(z,
                   axis_angle):
     if flex_imp==0:
         return 0, 0
-
+    
     # Create the items for the riks assembly and instance.
     flex_imperfection_amp = column_length / flex_imp
     glob_bow = -flex_imperfection_amp * sin(pi * z / column_length) * sin(pi / 4)
@@ -131,17 +132,17 @@ def calc_local_imp(coords,
                    fab_class,
                    percentage,
                    windowing=False):
-
+    
     # Circumferencial half wavelength.
     # perimeter divided by the number of waves
     l_g_circum = pi * 2  * r_circle / (2 * circum_waves)
-
+    
     # Meridional half wavelength
     l_g_meridi = column_length / (2 * meridi_waves)
     # l_gx is calculated as the mean value of the two wavelengths
     # (This requires justification)
     l_g = min(l_g_circum, l_g_meridi)
-
+    
     # Loop through the nodes of the mesh and apply displacements
     xi = coords[0]
     yi = coords[1]
@@ -152,20 +153,20 @@ def calc_local_imp(coords,
         crrnt_pt_angle = pi + atan(yi / xi)
     else:
         crrnt_pt_angle = pi
-
+    
     circum_wave = sin(circum_waves * crrnt_pt_angle)
     meridi_wave = cos(meridi_waves * 2 * pi * (zi - column_length/2.) / column_length)
-
+    
     if windowing:
         circum_window = blackman_percentage((crrnt_pt_angle + pi / 2.)/(2*pi))
         meridi_window = blackman_percentage(zi/(column_length+0.1))
     else:
         circum_window = 1
         meridi_window = 1
-
+    
     offset1 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * cos(crrnt_pt_angle) * (circum_window * meridi_window)
     offset2 = percentage * sd.fabclass_2_umax(fab_class) * l_g * (circum_wave * meridi_wave) * sin(crrnt_pt_angle) * (circum_window * meridi_window)
-
+    
     return offset1, offset2
 
 def blackman_percentage(percent):
@@ -228,35 +229,35 @@ def en_calcs(
     """
     # Bending radius
     r_bend = arc_to_thickness * thickness
-
+    
     # Radius of the polygon's circumscribed circle.
     r_circum = (pi * r_circle + r_bend * (n_sides * tan(np.pi/n_sides) - np.pi)) / (n_sides * sin(pi/n_sides))
     #r_circum = (pi * r_circle) / (n_sides * sin(pi / n_sides))
-
+    
     # Width of each side.
     w_side = 2 * r_circum * sin(pi / n_sides)
-
+    
     # Width of the corner bend half arc projection on the plane of the facet
     arc_width = r_bend * tan(np.pi / n_sides)
-
+    
     # Flat width of each facet (excluding the bended arcs)
     facet_flat_width = w_side - 2 * arc_width
-
+    
     # Total cross-sectional area of the bended corners
     corner_area = 2 * pi * r_bend * thickness
-
+    
     # Central angles
     theta = 2 * pi / n_sides
-
+    
     # Polar coordinate of ths polygon vertices on the cross-section plane.
     phii = []
     for i_index in range(n_sides):
         phii.append(i_index * theta)
-
+    
     # Coordinates of the polygon vertices.
     x_corners = r_circum * np.cos(phii)
     y_corners = r_circum * np.sin(phii)
-
+    
     # Cross-sectional properties
     nodes = [x_corners, y_corners]
     elem = [
@@ -264,34 +265,34 @@ def en_calcs(
         list(range(1, len(x_corners))) + [0],
         len(x_corners) * [thickness]
     ]
-
+    
     # Cross-sectional properties
     cs_props = sd.CsProps.from_cs_sketch(sd.CsSketch(nodes, elem))
-
+    
     # Critical stress acc. to plate theory.
     sigma_cr_plate = sd.sigma_cr_plate(thickness, facet_flat_width)
-
+    
     # Critical load acc. to plate theory.
     n_cr_plate = pi * 2 * r_circle * thickness * sigma_cr_plate
-
+    
     # Effective cross section area, A_eff
     a_eff = n_sides * sd.a_eff(thickness, facet_flat_width, f_yield) + corner_area
-
+    
     # Calculate column length for the given flexural slenderness.
     column_length = lambda_flex * pi * sqrt(210000. * cs_props.moi_1 / (a_eff * f_yield))
-
+    
     # Buckling load
     n_b_rd_plate = sd.n_b_rd(column_length, a_eff, cs_props.moi_1, f_yield, "d")
-
+    
     # Compression resistance acc. to plate theory, EC3-1-5.
     n_pl_rd_plate = n_sides * sd.n_pl_rd(thickness, facet_flat_width, f_yield) + corner_area * f_yield
-
+    
     # Critical stress acc. to shell theory.
     sigma_cr_shell = sd.sigma_x_rcr(thickness, r_circle, column_length)
-
+    
     # Critical load acc. to shell theory.
     n_cr_shell = sd.n_cr_shell(thickness, r_circle, column_length)
-
+    
     # Compression resistance acc. to shell theory, EC3-1-6.
     n_b_rd_shell = 2 * pi * r_circle * thickness * sd.sigma_x_rd(
         thickness,
@@ -301,16 +302,16 @@ def en_calcs(
         fab_quality=fab_class,
         gamma_m1=1.
     )
-
+    
     # Material epsilon.
     epsilon = sqrt(235. / f_yield)
-
+    
     # Classification as plate.
     p_classification = facet_flat_width / (epsilon * thickness)
-
+    
     # Classification as tube.
     t_classification = 2 * r_circle / (epsilon ** 2 * thickness)
-
+    
     return_dict = {
         "r_circum":r_circum,
         "w_side":w_side,
@@ -329,7 +330,7 @@ def en_calcs(
         "column_length":column_length,
         "n_b_rd_plate":n_b_rd_plate
     }
-
+    
     return return_dict
 
 #TODO: Update docstring for modeler
@@ -344,6 +345,7 @@ def modeler(n_sides,
             windowing=True,
             fab_class=None,
             radius_to_elsize=None,
+            biased_mesh=5,
             n_eigen=None,
             submit=False,
             IDstring=None
@@ -395,25 +397,26 @@ def modeler(n_sides,
 
     """
     #### INPUT DEFAULTS ####
-
+    session.journalOptions.setValues(replayGeometry=COORDINATE, recoverGeometry=COORDINATE)
+    
     # Column length
     if lambda_flex is None:
         lambda_flex = 1.
     else:
         lambda_flex = float(lambda_flex)
-
+    
     # Amplitude of imperfection
     if fab_class is None:
         fab_class = 'fcA'
     elif not((fab_class is 'fcA') or (fab_class is 'fcB') or (fab_class is 'fcC')):
         print('Invalid fabrication class input. Choose between \'fcA\', \'fcB\' and \'fcC\' ')
-
+    
     # Element size.
     if radius_to_elsize is None:
         radius_to_elsize = 20.
     else:
         radius_to_elsize = float(radius_to_elsize)
-
+    
     # Number of eigenvalues requested
     if n_eigen is None:
         n_eigen = 1
@@ -423,11 +426,11 @@ def modeler(n_sides,
     # ID of the current job
     if IDstring is None:
         IDstring = 'NA'
-
+    
     #### END DEFAULT INPUTS ####
-
+    
     #### GENERAL CALCULATIONS ####
-
+    
     props = en_calcs(
         n_sides,
         r_circle,
@@ -436,53 +439,53 @@ def modeler(n_sides,
         lambda_flex,
         fab_class,
         arc_to_thickness)
-
+    
     # Radius of the polygon's circumscribed circle.
     r_circum = props["r_circum"]
-
+    
     # Full width of each side.
     w_side = props["w_side"]
-
+    
     # Reduced width of each side (bended part excluded, as requested on EC31-1 and 1-5)
     facet_flat_width = props["facet_flat_width"]
-
+    
     # Critical stress acc. to plate theory.
     sigma_cr_plate = props["sigma_cr_plate"]
-
+    
     # Critical load acc. to plate theory.
     n_cr_plate = props["n_cr_plate"]
-
+    
     # Compression resistance acc. to plate theory, EC3-1-5.
     n_pl_rd_plate = props["n_pl_rd_plate"]
-
+    
     # Critical stress acc. to shell theory.
     sigma_cr_shell = props["sigma_cr_shell"]
-
+    
     # Critical load acc. to shell theory.
     n_cr_shell = props["n_cr_shell"]
-
+    
     # Compression resistance acc. to shell theory, EC3-1-6.
     n_b_rd_shell = props["n_b_rd_shell"]
-
+    
     # Material epsilon.
     epsilon = props["epsilon"]
-
+    
     # Classification as plate.
     p_classification = props["p_classification"]
-
+    
     # Classification as tube.
     t_classification = props["t_classification"]
-
+    
     # Polygon vertex coordinates (for the cross-section)
     x_corners = props["x_corners"]
     y_corners = props["y_corners"]
-
+    
     # Column length
     column_length = props["column_length"]
-
+    
     # Flexural buckling resistance
     n_b_rd_plate = props["n_b_rd_plate"]
-
+    
     # Calculate imperfections.
     # If no waves are given, a buckling model is ran and used for GMNIA imperfections
     if imperfections is None:
@@ -502,22 +505,22 @@ def modeler(n_sides,
     else:
         print("Wrong input on imperfections. Must be a tuple of 2 floats or a tuple of tuples of 2 integers and "
               "1 float. See documentation.")
-
+    
     #### START BCKL MODEL ####
-
+    
     # Create a new model database. This will also start a new journal file for the current session.
     Mdb()
-
+    
     # Change the pre-existing model name
     bckl_model_name = 'bckl_model'
     mdb.models.changeKey(
         fromName = 'Model-1',
         toName = bckl_model_name
         )
-
+    
     # Create a variable for the model
     bckl_model = mdb.models[bckl_model_name]
-
+    
     # Create sketch
     skecth_name = 'cs_sketch'
     cs_sketch = bckl_model.ConstrainedSketch(
@@ -541,7 +544,7 @@ def modeler(n_sides,
             nearPoint2 = (0, 0),
             radius = 3 * thickness
             )
-
+    
     # Create the part
     part_name = 'short_column'
     p_part = bckl_model.Part(
@@ -597,13 +600,108 @@ def modeler(n_sides,
         thicknessAssignment = FROM_SECTION
         )
     
-    # Seed the part according to the shell thickness
+    # Global seeding of the part according to the shell thickness
     elem_size = r_circum / radius_to_elsize
     p_part.seedPart(
         deviationFactor = 0.1, 
         minSizeFactor = 0.1,
         size = elem_size
         )
+    
+    if biased_mesh:
+        mid_datum = p_part.DatumPlaneByPrincipalPlane(
+            offset=column_length/2.,
+            principalPlane=XYPLANE
+            )
+        p_part.PartitionFaceByDatumPlane(
+            datumPlane=p_part.datums[mid_datum.id],
+            faces=p_part.faces[:]
+            )
+        
+        merid_1_ind, merid_2_ind, end_1_ind, mid_circ_ind, end_2_ind = [], [], [], [], []
+        for i in p_part.edges:
+            z1 = p_part.vertices[i.getVertices()[0]].pointOn[0][2]
+            z2 = p_part.vertices[i.getVertices()[1]].pointOn[0][2]
+            if z1 != z2 and (abs(z1)<1e-4 or abs(z1)<1e-4):
+                merid_1_ind.append(i.index)
+            elif z1 != z2 and(abs(z1-column_length)<1e-4 or abs(z2-column_length)<1e-4):
+                merid_2_ind.append(i.index)
+            elif abs(z1) < 1e-4 and abs(z2) < 1e-4:
+                end_1_ind.append(i.index)
+            elif abs(z1 - column_length/2.)<1e-4 and abs(z2 - column_length/2.)<1e-4:
+                mid_circ_ind.append(i.index)
+            elif abs(z1 - column_length)<1e-4 and abs(z2 - column_length)<1e-4:
+                end_2_ind.append(i.index)
+            else:
+                pass
+        
+        merid_1 = p_part.edges[merid_1_ind[0]:merid_1_ind[0] + 1]
+        merid_2 = p_part.edges[merid_2_ind[0]:merid_2_ind[0] + 1]
+        end_1_circ = p_part.edges[end_1_ind[0]:end_1_ind[0] + 1]
+        mid_circ = p_part.edges[mid_circ_ind[0]:mid_circ_ind[0] + 1]
+        end_2_circ = p_part.edges[end_2_ind[0]:end_2_ind[0] + 1]
+        
+        
+        for i in merid_1_ind[1:]:
+            merid_1 = merid_1 + p_part.edges[i:i + 1]
+        
+        for i in merid_2_ind[1:]:
+            merid_2 = merid_2 + p_part.edges[i:i + 1]
+        
+        for i in end_1_ind[1:]:
+            end_1_circ = end_1_circ + p_part.edges[i:i + 1]
+        
+        for i in mid_circ_ind[1:]:
+            mid_circ = mid_circ + p_part.edges[i:i + 1]
+        
+        for i in end_2_ind[1:]:
+            end_2_circ = end_2_circ + p_part.edges[i:i + 1]
+        
+        merid_set = p_part.Set(edges=merid_1, name="merid_1_edges")
+        merid_set = p_part.Set(edges=merid_2, name="merid_2_edges")
+        end_1_circ_set = p_part.Set(edges=end_1_circ, name="end_1")
+        mid_circ_set = p_part.Set(edges=mid_circ, name="mid_circ")
+        end_2_set = p_part.Set(edges=end_2_circ, name="end_2")
+        
+        p_part.seedEdgeByBias(
+            biasMethod=SINGLE,
+            constraint=FINER,
+            end2Edges=merid_1,
+            maxSize=biased_mesh*elem_size,
+            minSize=elem_size
+            )
+        p_part.seedEdgeByBias(
+            biasMethod=SINGLE,
+            constraint=FINER,
+            end1Edges=merid_2,
+            maxSize=biased_mesh*elem_size,
+            minSize=elem_size
+            )
+        p_part.seedEdgeBySize(
+            constraint=FINER, 
+            deviationFactor=0.1,
+            edges=end_1_circ, 
+            minSizeFactor=0.1,
+            size=biased_mesh*elem_size
+            )
+        p_part.seedEdgeBySize(
+            constraint=FINER, 
+            deviationFactor=0.1,
+            edges=mid_circ, 
+            minSizeFactor=0.1,
+            size=elem_size
+            )
+        p_part.seedEdgeBySize(
+            constraint=FINER, 
+            deviationFactor=0.1,
+            edges=end_2_circ, 
+            minSizeFactor=0.1,
+            size=biased_mesh*elem_size
+            )
+        p_part.setMeshControls(
+            elemShape=QUAD, 
+            regions=p_part.faces[:]
+            )
     
     # Mesh the part
     p_part.generateMesh()
@@ -622,10 +720,10 @@ def modeler(n_sides,
     # Create reference points at the ends of the column for BC couplings
     base_rp_feature = b_assembly.ReferencePoint(point=(0.0, 0.0, 0.0))
     head_rp_feature = b_assembly.ReferencePoint(point=(0.0, 0.0, column_length))
-    
+
     rp_base = b_assembly.referencePoints[base_rp_feature.id]
     rp_head = b_assembly.referencePoints[head_rp_feature.id]
-    
+
     # Create sets for the two reference points
     base_rp_set_name = 'base_rp'
     rp_base_set = b_assembly.Set(
@@ -636,7 +734,7 @@ def modeler(n_sides,
     rp_head_set = b_assembly.Set(
         name=head_rp_set_name,
         referencePoints = (rp_head, ))
-    
+
     # Create sets for the base and the head of the column
     base_edges_set_name = 'base_edges'
     base_edges_set = b_assembly.Set(
@@ -661,7 +759,7 @@ def modeler(n_sides,
             column_length),
         name = head_edges_set_name
         )
-    
+
     # Create column end couplings
     # Current coupling settings restrain the shell membrain rotation
     # For free edge shell rotation, change to: ur1 = OFF, ur2 = OFF
@@ -686,7 +784,7 @@ def modeler(n_sides,
         surface = head_edges_set,
         u1 = ON, u2 = ON, u3 = ON, ur1 = ON, ur2 = ON, ur3 = ON
         )
-    
+
     # Create buckling analysis step
     bckl_step_name = 'bckl-step'
     bckl_model.BuckleStep(
@@ -696,7 +794,7 @@ def modeler(n_sides,
         vectors = 8,
         maxIterations = 1000
         )
-    
+
     # Apply concentrated load
     load_name = 'compression'
     bckl_model.ConcentratedForce(
@@ -708,7 +806,7 @@ def modeler(n_sides,
         name = load_name,
         region = rp_head_set
         )
-    
+
     # Hinge column base
     base_BC_name = 'fix_base'
     bckl_model.DisplacementBC(
@@ -721,7 +819,7 @@ def modeler(n_sides,
         region = rp_base_set,
         u1 = SET, u2 = SET, u3 = SET, ur1 = UNSET, ur2 = UNSET, ur3 = SET
         )
-    
+
     # Hinge column head
     head_BC_name = 'fix_head'
     bckl_model.DisplacementBC(
@@ -734,7 +832,7 @@ def modeler(n_sides,
         region = rp_head_set,
         u1 = SET, u2 = SET, u3 = UNSET, ur1 = UNSET, ur2 = UNSET, ur3 = SET
         )
-    
+
     # Set field output requests
     bckl_model.fieldOutputRequests['F-Output-1'].setValues(
         variables = ('U',)
@@ -754,7 +852,7 @@ def modeler(n_sides,
 
     # Delete buckling step
     del riks_mdl.steps[bckl_step_name]
-    
+
     # Create RIKS step
     riks_step_name = 'riks-step'
     max_increments = 20
@@ -764,27 +862,27 @@ def modeler(n_sides,
         nlgeom=ON,
         maxNumInc=max_increments,
         extrapolation=LINEAR,
-        initialArcInc=0.1,
-        minArcInc=1e-07,
-        totalArcLength=2
+        initialArcInc=0.5,
+        minArcInc=1e-12,
+        totalArcLength=1.
         )
-    
+
     # Rename the material
     material_name = "S"+"%d"%f_yield
     riks_mdl.materials.changeKey(
         fromName=el_material_name,
         toName=material_name)
-    
+
     # Change to plastic material
     riks_mdl.materials[material_name].Plastic(
         table = sd.Material.plastic_table(nominal=material_name)
         )
-    
+
     # Change the section material name accordingly
     riks_mdl.sections[shell_section_name].setValues(
         material=material_name,
         )
-    
+
     # Create a set to act as a control point for the solver killer subroutine
     assmbl_riks = riks_mdl.rootAssembly
     instance = assmbl_riks.instances[part_name]
@@ -793,7 +891,7 @@ def modeler(n_sides,
         name=killer_cp_name,
         nodes=(instance.nodes[1:2],)
         )
-    
+
     # Set history output request for displacement
     disp_hist_name = "disp"
     disp_history = riks_mdl.HistoryOutputRequest(
@@ -804,7 +902,7 @@ def modeler(n_sides,
         sectionPoints = DEFAULT,
         variables = ('U3', )
         )
-    
+
     # Set history output request for load
     load_hist_name = "load"
     load_history = riks_mdl.HistoryOutputRequest(
@@ -815,10 +913,10 @@ def modeler(n_sides,
         sectionPoints = DEFAULT,
         variables = ('RF3', )
         )
-    
+
     # Delete pre-existing history request: H-Output-1
     riks_mdl.historyOutputRequests.delete(['H-Output-1'])
-    
+
     # Apply concentrated load
     riks_mdl.ConcentratedForce(
         cf3 = -n_b_rd_plate,
@@ -829,9 +927,9 @@ def modeler(n_sides,
         name = load_name,
         region = rp_head_set
         )
-    
+
     ###### END RIKS MODEL ######
-    
+
     ###### IMPERFECTIONS ######
 
     # Edit the coordinates of nodes to get the imperfect shape.
@@ -845,7 +943,7 @@ def modeler(n_sides,
         # Edit the keywords for the buckling model to write 'U' on file
         bckl_model.keywordBlock.synchVersions(storeNodesAndElements = False)
         bckl_model.keywordBlock.insert(at.get_block_position(bckl_model, '*End Step') - 1, '*NODE FILE\nU')
-        
+
         # Create the job
         bckl_job_name = 'BCKL-'+IDstring
         bckl_job = mdb.Job(
@@ -873,11 +971,11 @@ def modeler(n_sides,
             waitHours = 0,
             waitMinutes = 0
             )
-        
+
         # Submit buckling job
         bckl_job.submit(consistencyChecking=OFF)
         bckl_job.waitForCompletion()
-    
+
         # Open the buckling step odb file
         eigen_data = at.fetch_eigenv(bckl_job_name, bckl_step_name, n_eigen)
         eigenvalues = eigen_data[0]
@@ -890,31 +988,31 @@ def modeler(n_sides,
         diff_II = (eigenvalues[0] - n_cr_shell) ** 2
         prop_I = diff_II / (diff_I + diff_II)
         prop_II = diff_I / (diff_I + diff_II)
-        
+
         # find the maximum displacement from the buckling analysis
         bckl_odb = at.open_odb(bckl_job_name + '.odb')
         Umax = at.field_max(bckl_odb, ['U', 'Magnitude'])
         odbAccess.closeOdb(bckl_odb)
-        
+
         # Plate-like imperfection half wavelength
         # perimeter divided by the number of waves
         l_g_I = 2 * pi * r_circle / (n_sides)
-        
+
         # Plate-like imperfection half wavelength
         l_g_II = 2 * pi * r_circle / (2 * floor(n_sides / 4))
-        
+
         # l_g is formed from l_g_I and l_g_II.
         # the contribution of each wavelength is based on the deviation of 
         # the eigenvalue analysis to the EC N_cr
         l_g = l_g_I * prop_I + l_g_II * prop_II
-        
+
         # Calculate target maximum imperfection displacement (fabrication class)
         # for a length lg calculated between 1 and 2 sides (plate and spillover waves)
         u_tot = l_g * sd.fabclass_2_umax(fab_class)
-        
+
         # Imperfection amplitude
         a_imp = u_tot / Umax
-        
+
         # Edit the keywords for the compression riks model to include imperfections from buckling analysis
         riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
         riks_mdl.keywordBlock.replace(
@@ -946,9 +1044,9 @@ def modeler(n_sides,
             )
 
     ###### END IMPERFECTIONS ####
-    
+
     ###### RIKS JOB #######
-    
+
     #  Output the RIKS_NODE for GN_killer to work
     riks_mdl.keywordBlock.synchVersions(storeNodesAndElements=False)
     riks_mdl.keywordBlock.insert(
@@ -1052,7 +1150,7 @@ def modeler(n_sides,
 
     out_file.close()
 
-    return_string = ("%07.3f %07.3f %07.3f %.5E %.5E %.5E"
+    return_string = ("%07.3f,%07.3f,%07.3f,%.5E,%.5E,%.5E"
         %(
             r_circum,
             thickness,
@@ -1065,7 +1163,7 @@ def modeler(n_sides,
     if submit:
         utilization_1_5 = max_load / n_b_rd_plate
         utilization_1_6 = max_load / n_b_rd_shell
-        return_string = return_string + "%06.5f %.5E %07.4f %06.5f %06.5f"%(max_lpf, max_load, max_disp, utilization_1_5, utilization_1_6)
+        return_string = return_string + ",%06.5f,%.5E,%07.4, %06.5f,%06.5f"%(max_lpf, max_load, max_disp, utilization_1_5, utilization_1_6)
 
     return return_string
 
@@ -1080,6 +1178,7 @@ def modeler_classif(n_sides,
             windowing=True,
             fab_class=None,
             radius_to_elsize=None,
+            biased_mesh=5,
             n_eigen=None,
             submit=False,
             IDstring=None
@@ -1109,6 +1208,7 @@ def modeler_classif(n_sides,
             windowing=windowing,
             fab_class=fab_class,
             radius_to_elsize=radius_to_elsize,
+            biased_mesh=biased_mesh,
             n_eigen=n_eigen,
             submit=submit,
             IDstring=IDstring
