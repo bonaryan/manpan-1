@@ -57,6 +57,6 @@ M_bolt = 16
  Clearence from the washer to the edge of the lip and the start of the bending arc in mm
 clearence = 3
 
-# Acknowledgements
-This code was used for masters thesis and publication as follows:
-"Finite Element Modelling and Parametric Studies of Semi-Closed Thin-Walled Steel Polygonal Columns For The Application on Steel Lattice Towers" https://doi.org/10.32783/csid-jid.v2i2.65
+# Citation
+This code was used in my masters thesis and publication as follows:
+"Finite Element Modelling and Parametric Studies of Semi-Closed Thin-Walled Steel Polygonal Columns for the Application on Steel Lattice Towers" https://doi.org/10.32783/csid-jid.v2i2.65
